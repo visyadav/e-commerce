@@ -1,4 +1,5 @@
 using ECommerce.Api.Common;
+using ECommerce.Api.Filters;
 using ECommerce.Api.Modules.Catalog.Products.DTOs;
 using ECommerce.Api.Modules.Catalog.Products.Interfaces;
 using ECommerce.Shared.Responses;
@@ -18,7 +19,7 @@ public class ProductController : BaseApiController
     }
 
     [HttpGet]
-    [AllowAnonymous]
+    [HasPermission("Catalog", "Read")]
     [ProducesResponseType(typeof(PagedResponse<ProductDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProducts(
         [FromQuery] Guid? categoryId,
@@ -37,7 +38,7 @@ public class ProductController : BaseApiController
     }
 
     [HttpGet("{id:guid}")]
-    [AllowAnonymous]
+    [HasPermission("Catalog", "Read")]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProductById(Guid id, CancellationToken cancellationToken)
@@ -47,7 +48,7 @@ public class ProductController : BaseApiController
     }
 
     [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
+    [HasPermission("Catalog", "Create")]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
@@ -58,7 +59,7 @@ public class ProductController : BaseApiController
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = "AdminOnly")]
+    [HasPermission("Catalog", "Update")]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -69,7 +70,7 @@ public class ProductController : BaseApiController
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = "AdminOnly")]
+    [HasPermission("Catalog", "Delete")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteProduct(Guid id, CancellationToken cancellationToken)

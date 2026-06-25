@@ -26,6 +26,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
+    public DbSet<RoleMenuPermission> RoleMenuPermissions => Set<RoleMenuPermission>();
+    public DbSet<UserMenuPermission> UserMenuPermissions => Set<UserMenuPermission>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
