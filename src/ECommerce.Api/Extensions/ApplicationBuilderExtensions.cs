@@ -29,7 +29,10 @@ public static class ApplicationBuilderExtensions
             });
         }
 
-        app.UseHttpsRedirection();
+        if (!env.IsDevelopment())
+        {
+            app.UseHttpsRedirection();
+        }
 
         // Serve uploaded files (from local storage)
         app.UseStaticFiles();

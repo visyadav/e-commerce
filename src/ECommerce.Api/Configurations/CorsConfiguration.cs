@@ -12,9 +12,17 @@ public static class CorsConfiguration
         {
             options.AddPolicy(CorsPolicyName, builder =>
             {
-                builder.AllowAnyOrigin() // In production, replace with specific origins
+                builder.WithOrigins(
+                            "http://localhost:3000", 
+                            "https://localhost:3000",
+                            "http://127.0.0.1:3000",
+                            "http://localhost:5173",
+                            "http://127.0.0.1:5173",
+                            "http://localhost:4200"
+                        )
                        .AllowAnyMethod()
-                       .AllowAnyHeader();
+                       .AllowAnyHeader()
+                       .AllowCredentials();
             });
         });
 

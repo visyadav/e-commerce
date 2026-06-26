@@ -122,7 +122,25 @@ public class DataSeeder
     private async Task SeedMenuItemsAsync()
     {
         if (await _context.MenuItems.AnyAsync())
+        {
+            var hasUserManagement = await _context.MenuItems.AnyAsync(m => m.Title == "User Management");
+            if (!hasUserManagement)
+            {
+                var userManagementMenu = new MenuItem
+                {
+                    Title = "User Management",
+                    Icon = "manage_accounts",
+                    Url = "/admin/permissions",
+                    SortOrder = 11,
+                    Module = "Admin",
+                    AllowedRoles = $"{AppConstants.Roles.SuperAdmin}"
+                };
+                await _context.MenuItems.AddAsync(userManagementMenu);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Seeded missing 'User Management' menu item");
+            }
             return;
+        }
 
         var adminRoles = $"{AppConstants.Roles.SuperAdmin},{AppConstants.Roles.Admin}";
         var customerRole = AppConstants.Roles.Customer;
@@ -234,6 +252,16 @@ public class DataSeeder
             AllowedRoles = $"{AppConstants.Roles.SuperAdmin}"
         };
 
+        var userManagement = new MenuItem
+        {
+            Title = "User Management",
+            Icon = "manage_accounts",
+            Url = "/admin/permissions",
+            SortOrder = 11,
+            Module = "Admin",
+            AllowedRoles = $"{AppConstants.Roles.SuperAdmin}"
+        };
+
         // ===================== CUSTOMER MENU ITEMS =====================
         var myAccount = new MenuItem
         {
@@ -298,7 +326,7 @@ public class DataSeeder
         var adminMenuItems = new List<MenuItem>
         {
             dashboard, catalog, inventory, orders, customers,
-            payments, coupons, adminReviews, adminNotifications, settings
+            payments, coupons, adminReviews, adminNotifications, settings, userManagement
         };
 
         var customerMenuItems = new List<MenuItem>
