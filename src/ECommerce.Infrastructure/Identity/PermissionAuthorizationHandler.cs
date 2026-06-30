@@ -23,7 +23,32 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
         if (context.User == null!)
             return;
 
-        // 1. SuperAdmin Bypass: SuperAdmin has unrestricted access to everything
+        // Load the MenuItem to check dynamic status
+        var menuItem = await _dbContext.MenuItems
+            .FirstOrDefaultAsync(m => m.Module == requirement.Module);
+
+        if (menuItem != null)
+        {
+            // 1. Globally Inactive Check: If the module is deactivated, deny access
+            if (!menuItem.IsActive)
+            {
+                return;
+            }
+
+            // 2. Allowed Roles Limit: If module specifies allowed roles, check intersection
+            if (!string.IsNullOrWhiteSpace(menuItem.AllowedRoles))
+            {
+                var allowedRolesList = menuItem.AllowedRoles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var userRolesList = context.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+                
+                if (!context.User.IsInRole(AppConstants.Roles.SuperAdmin) && !userRolesList.Any(r => allowedRolesList.Contains(r)))
+                {
+                    return;
+                }
+            }
+        }
+
+        // 3. SuperAdmin Bypass: SuperAdmin has unrestricted access to everything
         if (context.User.IsInRole(AppConstants.Roles.SuperAdmin))
         {
             context.Succeed(requirement);

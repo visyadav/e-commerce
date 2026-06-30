@@ -8,6 +8,7 @@ using ECommerce.Infrastructure.Persistence.Seed;
 using ECommerce.Infrastructure.Storage;
 using ECommerce.Infrastructure.Caching;
 using ECommerce.Infrastructure.Email;
+using ECommerce.Infrastructure.Logging;
 using ECommerce.Infrastructure.Payment;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -89,6 +90,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IFileStorageService, FileStorageService>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IPermissionAuditLogger, PermissionAuditLogger>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<DataSeeder>();
