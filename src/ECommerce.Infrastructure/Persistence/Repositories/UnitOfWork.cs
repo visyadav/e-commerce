@@ -28,6 +28,27 @@ public class UnitOfWork : IUnitOfWork
         return await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        await _context.Database.BeginTransactionAsync(cancellationToken);
+    }
+
+    public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        if (_context.Database.CurrentTransaction != null)
+        {
+            await _context.Database.CurrentTransaction.CommitAsync(cancellationToken);
+        }
+    }
+
+    public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        if (_context.Database.CurrentTransaction != null)
+        {
+            await _context.Database.CurrentTransaction.RollbackAsync(cancellationToken);
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)
