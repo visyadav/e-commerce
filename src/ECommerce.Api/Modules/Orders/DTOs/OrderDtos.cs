@@ -30,11 +30,11 @@ public class AddressDto
 
 public class CreateOrderRequest
 {
-    [Required]
-    public AddressDto ShippingAddress { get; set; } = null!;
+    public Guid? ShippingAddressId { get; set; }
+    public Guid? BillingAddressId { get; set; }
 
-    [Required]
-    public AddressDto BillingAddress { get; set; } = null!;
+    public AddressDto? ShippingAddress { get; set; }
+    public AddressDto? BillingAddress { get; set; }
 
     [MaxLength(500)]
     public string? Notes { get; set; }

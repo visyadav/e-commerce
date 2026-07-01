@@ -60,8 +60,61 @@ public class OrderService : IOrderService
         }
 
         // 3. Address mappings
-        var shippingAddress = _mapper.Map<Address>(request.ShippingAddress);
-        var billingAddress = _mapper.Map<Address>(request.BillingAddress);
+        Address shippingAddress;
+        if (request.ShippingAddressId.HasValue)
+        {
+            var savedAddr = await _unitOfWork.Repository<UserAddress>().Query()
+                .FirstOrDefaultAsync(a => a.Id == request.ShippingAddressId.Value && a.UserId == userId, cancellationToken);
+            if (savedAddr == null)
+            {
+                throw new BadRequestException("Specified saved shipping address not found.");
+            }
+            shippingAddress = new Address
+            {
+                Street = savedAddr.Street,
+                City = savedAddr.City,
+                State = savedAddr.State,
+                Country = savedAddr.Country,
+                ZipCode = savedAddr.ZipCode,
+                Phone = savedAddr.Phone
+            };
+        }
+        else if (request.ShippingAddress != null)
+        {
+            shippingAddress = _mapper.Map<Address>(request.ShippingAddress);
+        }
+        else
+        {
+            throw new BadRequestException("Shipping address is required.");
+        }
+
+        Address billingAddress;
+        if (request.BillingAddressId.HasValue)
+        {
+            var savedAddr = await _unitOfWork.Repository<UserAddress>().Query()
+                .FirstOrDefaultAsync(a => a.Id == request.BillingAddressId.Value && a.UserId == userId, cancellationToken);
+            if (savedAddr == null)
+            {
+                throw new BadRequestException("Specified saved billing address not found.");
+            }
+            billingAddress = new Address
+            {
+                Street = savedAddr.Street,
+                City = savedAddr.City,
+                State = savedAddr.State,
+                Country = savedAddr.Country,
+                ZipCode = savedAddr.ZipCode,
+                Phone = savedAddr.Phone
+            };
+        }
+        else if (request.BillingAddress != null)
+        {
+            billingAddress = _mapper.Map<Address>(request.BillingAddress);
+        }
+        else
+        {
+            throw new BadRequestException("Billing address is required.");
+        }
 
         // 4. Calculations
         var subTotal = cartItems.Sum(ci => ci.Quantity * ci.Product.Price);

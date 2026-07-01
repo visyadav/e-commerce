@@ -24,6 +24,7 @@ public class ApplicationUser : IdentityUser
     public ICollection<WishlistItem> WishlistItems { get; set; } = [];
     public ICollection<Review> Reviews { get; set; } = [];
     public ICollection<Notification> Notifications { get; set; } = [];
+    public ICollection<UserAddress> SavedAddresses { get; set; } = [];
 
     public string FullName => $"{FirstName} {LastName}";
 }
