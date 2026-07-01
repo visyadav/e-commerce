@@ -24,6 +24,7 @@ public class UserProfileDto
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string? ProfileImageUrl { get; set; }
+    public string ThemeColor { get; set; } = "default";
     public List<UserAddressDto> SavedAddresses { get; set; } = [];
 }
 
@@ -109,3 +110,11 @@ public class UpdateUserAddressRequest
     public bool IsDefaultShipping { get; set; }
     public bool IsDefaultBilling { get; set; }
 }
+
+public class UpdateThemeColorRequest
+{
+    [Required]
+    [MaxLength(50)]
+    public required string ThemeColor { get; set; }
+}
+

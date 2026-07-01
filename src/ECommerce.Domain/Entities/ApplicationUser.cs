@@ -16,6 +16,7 @@ public class ApplicationUser : IdentityUser
     public DateTime? UpdatedAt { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
+    public string ThemeColor { get; set; } = "default";
 
     // Navigation
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];

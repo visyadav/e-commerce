@@ -11,4 +11,5 @@ public interface IProfileService
     Task<ApiResponse<UserAddressDto>> AddAddressAsync(string userId, CreateUserAddressRequest request);
     Task<ApiResponse<UserAddressDto>> UpdateAddressAsync(string userId, Guid addressId, UpdateUserAddressRequest request);
     Task<ApiResponse> DeleteAddressAsync(string userId, Guid addressId);
+    Task<ApiResponse> UpdateThemeColorAsync(string userId, string themeColor);
 }

@@ -112,4 +112,28 @@ public class ProfileController : BaseApiController
         var response = await _profileService.DeleteAddressAsync(userId, id);
         return Ok(response);
     }
+
+    [HttpPut("theme")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateThemeColor([FromBody] UpdateThemeColorRequest request)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(ApiResponse.FailureResponse("User ID is missing from claims."));
+        }
+
+        var roles = CurrentUserRoles;
+        if (!roles.Contains(ECommerce.Shared.Constants.AppConstants.Roles.Admin) && 
+            !roles.Contains(ECommerce.Shared.Constants.AppConstants.Roles.SuperAdmin))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailureResponse("Only admin users can customize theme colors.", ["Access Denied."]));
+        }
+
+        var response = await _profileService.UpdateThemeColorAsync(userId, request.ThemeColor);
+        return Ok(response);
+    }
 }

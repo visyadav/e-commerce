@@ -144,7 +144,8 @@ public class AuthService : IAuthService
             AccessTokenExpiration = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
             Email = user.Email ?? string.Empty,
             FullName = user.FullName,
-            Roles = [.. roles]
+            Roles = [.. roles],
+            ThemeColor = user.ThemeColor
         };
 
         return ApiResponse<AuthResponse>.SuccessResponse(response, "Token refreshed successfully.");
@@ -175,7 +176,8 @@ public class AuthService : IAuthService
             AccessTokenExpiration = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
             Email = user.Email ?? string.Empty,
             FullName = user.FullName,
-            Roles = [.. roles]
+            Roles = [.. roles],
+            ThemeColor = user.ThemeColor
         };
 
         return ApiResponse<AuthResponse>.SuccessResponse(response, "Authentication successful.");

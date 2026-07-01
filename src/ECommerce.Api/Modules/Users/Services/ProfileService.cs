@@ -170,6 +170,25 @@ public class ProfileService : IProfileService
         return ApiResponse.SuccessResponse("Address deleted successfully.");
     }
 
+    public async Task<ApiResponse> UpdateThemeColorAsync(string userId, string themeColor)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            throw new NotFoundException(nameof(ApplicationUser), userId);
+        }
+
+        user.ThemeColor = themeColor;
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            throw new BadRequestException($"Failed to update theme color: {string.Join(", ", errors)}");
+        }
+
+        return ApiResponse.SuccessResponse("Theme color updated successfully.");
+    }
+
     private async Task ResetOtherDefaultShippingAddressesAsync(string userId)
     {
         var addressRepo = _unitOfWork.Repository<UserAddress>();
