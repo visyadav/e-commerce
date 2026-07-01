@@ -22,6 +22,9 @@ export interface AuthResponse {
 }
 
 export interface StoredUser {
+  lastName: any;
+  firstName: any;
+  profileImage: string | Blob | undefined;
   email: string;
   fullName: string;
   roles: string[];

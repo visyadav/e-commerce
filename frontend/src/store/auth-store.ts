@@ -58,7 +58,8 @@ export interface AuthContextType {
     lastName: string,
     email: string,
     password: string,
-    phoneNumber?: string
+    phoneNumber?: string,
+    profileImage?: string
   ) => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<StoredUser>) => void;

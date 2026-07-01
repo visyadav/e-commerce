@@ -5,7 +5,7 @@ import {
     NavigationMenuList,
     navigationMenuTriggerStyle,
 } from "@/src/components/ui/navigation-menu"
-import { Modetoggle } from "./theme-toggle/ModeToggle"
+import { UserProfile } from "../admin/user-profile"
 
 export function TopNavigation() {
     return (
@@ -19,10 +19,7 @@ export function TopNavigation() {
                     </NavigationMenuItem>
                 </NavigationMenuList>
             </NavigationMenu>
-
-            <div className="ml-auto">
-                <Modetoggle />
-            </div>
+            <UserProfile />
         </div>
     )
 }
