@@ -6,6 +6,7 @@ using ECommerce.Domain.Entities;
 using ECommerce.Domain.Interfaces;
 using ECommerce.Shared.Exceptions;
 using ECommerce.Shared.Responses;
+using ECommerce.Shared.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Api.Modules.Catalog.Products.Services;
@@ -87,6 +88,7 @@ public class ProductService : IProductService
 
         // Map and save
         var product = _mapper.Map<Product>(request);
+        product.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
         
         await _unitOfWork.Repository<Product>().AddAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -129,6 +131,7 @@ public class ProductService : IProductService
 
         // Map updates to existing entity
         _mapper.Map(request, product);
+        product.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
 
         _unitOfWork.Repository<Product>().Update(product);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

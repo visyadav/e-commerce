@@ -8,6 +8,9 @@ public class BrandDto
     public string Name { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? LogoUrl { get; set; }
+    public string? Website { get; set; }
+    public bool IsActive { get; set; }
 }
 
 public class CreateBrandRequest
@@ -16,8 +19,14 @@ public class CreateBrandRequest
     [MaxLength(256)]
     public string Name { get; set; } = string.Empty;
 
+    public string Slug { get; set; } = string.Empty;
+
     [MaxLength(1000)]
     public string? Description { get; set; }
+
+    public string? LogoUrl { get; set; }
+    public string? Website { get; set; }
+    public bool IsActive { get; set; } = true;
 }
 
 public class UpdateBrandRequest
@@ -26,6 +35,12 @@ public class UpdateBrandRequest
     [MaxLength(256)]
     public string Name { get; set; } = string.Empty;
 
+    public string Slug { get; set; } = string.Empty;
+
     [MaxLength(1000)]
     public string? Description { get; set; }
+
+    public string? LogoUrl { get; set; }
+    public string? Website { get; set; }
+    public bool IsActive { get; set; }
 }

@@ -84,7 +84,7 @@ public class CategoryService : ICategoryService
         }
 
         var category = _mapper.Map<Category>(request);
-        category.Slug = SlugGenerator.Generate(request.Name);
+        category.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
 
         await _unitOfWork.Repository<Category>().AddAsync(category, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -124,7 +124,7 @@ public class CategoryService : ICategoryService
         }
 
         _mapper.Map(request, category);
-        category.Slug = SlugGenerator.Generate(request.Name);
+        category.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
 
         _unitOfWork.Repository<Category>().Update(category);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

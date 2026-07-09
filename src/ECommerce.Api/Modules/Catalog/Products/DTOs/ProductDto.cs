@@ -9,7 +9,9 @@ public class ProductDto
     public required string Sku { get; set; }
     public decimal Price { get; set; }
     public decimal? CompareAtPrice { get; set; }
+    public decimal? CostPrice { get; set; }
     public int StockQuantity { get; set; }
+    public int LowStockThreshold { get; set; }
     public bool IsActive { get; set; }
     public bool IsFeatured { get; set; }
     public string? ImageUrl { get; set; }

@@ -3,16 +3,27 @@ export interface BrandDto {
   name: string;
   slug: string;
   description?: string;
+  logoUrl?: string;
+  website?: string;
+  isActive: boolean;
 }
 
 export interface CreateBrandRequest {
   name: string;
+  slug?: string;
   description?: string;
+  logoUrl?: string;
+  website?: string;
+  isActive: boolean;
 }
 
 export interface UpdateBrandRequest {
   name: string;
+  slug?: string;
   description?: string;
+  logoUrl?: string;
+  website?: string;
+  isActive: boolean;
 }
 
 export interface CategoryDto {
@@ -20,6 +31,8 @@ export interface CategoryDto {
   name: string;
   slug: string;
   description?: string;
+  imageUrl?: string;
+  isActive: boolean;
   sortOrder: number;
   parentCategoryId?: string;
   parentCategoryName?: string;
@@ -27,14 +40,20 @@ export interface CategoryDto {
 
 export interface CreateCategoryRequest {
   name: string;
+  slug?: string;
   description?: string;
+  imageUrl?: string;
+  isActive: boolean;
   sortOrder: number;
   parentCategoryId?: string;
 }
 
 export interface UpdateCategoryRequest {
   name: string;
+  slug?: string;
   description?: string;
+  imageUrl?: string;
+  isActive: boolean;
   sortOrder: number;
   parentCategoryId?: string;
 }
@@ -47,7 +66,9 @@ export interface ProductDto {
   sku: string;
   price: number;
   compareAtPrice?: number;
+  costPrice?: number;
   stockQuantity: number;
+  lowStockThreshold: number;
   isActive: boolean;
   isFeatured: boolean;
   imageUrl?: string;
@@ -65,11 +86,14 @@ export interface ProductDto {
 
 export interface CreateProductRequest {
   name: string;
+  slug?: string;
   description?: string;
   sku: string;
   price: number;
   compareAtPrice?: number;
+  costPrice?: number;
   stockQuantity: number;
+  lowStockThreshold: number;
   isActive: boolean;
   isFeatured: boolean;
   imageUrl?: string;
@@ -83,11 +107,14 @@ export interface CreateProductRequest {
 
 export interface UpdateProductRequest {
   name: string;
+  slug?: string;
   description?: string;
   sku: string;
   price: number;
   compareAtPrice?: number;
+  costPrice?: number;
   stockQuantity: number;
+  lowStockThreshold: number;
   isActive: boolean;
   isFeatured: boolean;
   imageUrl?: string;

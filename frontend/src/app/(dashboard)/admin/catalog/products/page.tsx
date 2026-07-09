@@ -35,13 +35,18 @@ export default function ProductsPage() {
   // Form state
   const [formData, setFormData] = useState({
     name: "",
+    slug: "",
     description: "",
     sku: "",
     price: 0,
     compareAtPrice: 0,
+    costPrice: 0,
     stockQuantity: 0,
+    lowStockThreshold: 10,
     isActive: true,
     isFeatured: false,
+    imageUrl: "",
+    tags: "",
     weight: 0,
     dimensions: "",
     categoryId: "",
@@ -85,13 +90,18 @@ export default function ProductsPage() {
     setEditingProduct(null);
     setFormData({
       name: "",
+      slug: "",
       description: "",
       sku: "",
       price: 0,
       compareAtPrice: 0,
+      costPrice: 0,
       stockQuantity: 0,
+      lowStockThreshold: 10,
       isActive: true,
       isFeatured: false,
+      imageUrl: "",
+      tags: "",
       weight: 0,
       dimensions: "",
       categoryId: categories.length > 0 ? categories[0].id : "",
@@ -104,19 +114,34 @@ export default function ProductsPage() {
     setEditingProduct(product);
     setFormData({ 
       name: product.name,
+      slug: product.slug,
       description: product.description || "",
       sku: product.sku,
       price: product.price,
       compareAtPrice: product.compareAtPrice || 0,
+      costPrice: product.costPrice || 0,
       stockQuantity: product.stockQuantity,
-      isActive: product.isActive,
-      isFeatured: product.isFeatured,
-      weight: product.weight,
+      lowStockThreshold: product.lowStockThreshold || 10,
+      isActive: product.isActive !== undefined ? product.isActive : true,
+      isFeatured: product.isFeatured || false,
+      imageUrl: product.imageUrl || "",
+      tags: product.tags || "",
+      weight: product.weight || 0,
       dimensions: product.dimensions || "",
       categoryId: product.categoryId,
       brandId: product.brandId || ""
     });
     setIsSheetOpen(true);
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    if (!editingProduct) {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+      setFormData({ ...formData, name, slug });
+    } else {
+      setFormData({ ...formData, name });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -142,8 +167,10 @@ export default function ProductsPage() {
       
       const submitData = {
         ...formData,
+        slug: formData.slug || undefined,
         brandId: formData.brandId === "" ? undefined : formData.brandId,
-        compareAtPrice: formData.compareAtPrice === 0 ? undefined : formData.compareAtPrice
+        compareAtPrice: formData.compareAtPrice === 0 ? undefined : formData.compareAtPrice,
+        costPrice: formData.costPrice === 0 ? undefined : formData.costPrice
       };
 
       if (editingProduct) {
@@ -256,28 +283,37 @@ export default function ProductsPage() {
       )}
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="overflow-y-auto">
+        <SheetContent className="sm:max-w-xl overflow-y-auto w-full">
           <SheetHeader>
             <SheetTitle>{editingProduct ? "Edit Product" : "Add Product"}</SheetTitle>
             <SheetDescription>
               {editingProduct ? "Update the product details." : "Create a new product."}
             </SheetDescription>
           </SheetHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <form onSubmit={handleSubmit} className="space-y-6 py-6">
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
-                <label className="text-sm font-medium leading-none">Name</label>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Name</label>
                 <Input
                   required
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={handleNameChange}
                   placeholder="Product name"
                 />
               </div>
 
-              <div className="space-y-2 col-span-2">
-                <label className="text-sm font-medium leading-none">Description</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Slug</label>
+                <Input
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  placeholder="product-slug"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 col-span-2">
+                <label className="text-sm font-medium">Description</label>
                 <Input
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -285,8 +321,8 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">SKU</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">SKU</label>
                 <Input
                   required
                   value={formData.sku}
@@ -295,18 +331,17 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">Stock Quantity</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Image URL</label>
                 <Input
-                  type="number"
-                  required
-                  value={formData.stockQuantity}
-                  onChange={(e) => setFormData({ ...formData, stockQuantity: parseInt(e.target.value) || 0 })}
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  placeholder="https://example.com/image.png"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">Price</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Price</label>
                 <Input
                   type="number"
                   step="0.01"
@@ -316,8 +351,8 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">Compare At Price</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Compare At Price</label>
                 <Input
                   type="number"
                   step="0.01"
@@ -326,8 +361,66 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <label className="text-sm font-medium leading-none block mb-2">Category</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Cost Price</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.costPrice}
+                  onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Tags</label>
+                <Input
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  placeholder="tag1, tag2"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Stock Quantity</label>
+                <Input
+                  type="number"
+                  required
+                  value={formData.stockQuantity}
+                  onChange={(e) => setFormData({ ...formData, stockQuantity: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Low Stock Threshold</label>
+                <Input
+                  type="number"
+                  required
+                  value={formData.lowStockThreshold}
+                  onChange={(e) => setFormData({ ...formData, lowStockThreshold: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Weight</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={formData.weight}
+                  onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Dimensions</label>
+                <Input
+                  value={formData.dimensions}
+                  onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
+                  placeholder="10x10x10"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 col-span-2 sm:col-span-1">
+                <label className="text-sm font-medium">Category</label>
                 <select 
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   required
@@ -341,8 +434,8 @@ export default function ProductsPage() {
                 </select>
               </div>
 
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <label className="text-sm font-medium leading-none block mb-2">Brand</label>
+              <div className="flex flex-col gap-2 col-span-2 sm:col-span-1">
+                <label className="text-sm font-medium">Brand</label>
                 <select 
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={formData.brandId}
@@ -356,16 +449,25 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 pt-2">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <label htmlFor="isActive" className="text-sm font-medium leading-none">
-                Active (visible in store)
+            <div className="flex items-center space-x-6 pt-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span className="text-sm font-medium">Active (visible in store)</span>
+              </label>
+              
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isFeatured}
+                  onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span className="text-sm font-medium">Featured</span>
               </label>
             </div>
 

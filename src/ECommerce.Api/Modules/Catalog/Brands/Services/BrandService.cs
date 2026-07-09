@@ -67,7 +67,7 @@ public class BrandService : IBrandService
     public async Task<ApiResponse<BrandDto>> CreateAsync(CreateBrandRequest request, CancellationToken cancellationToken = default)
     {
         var brand = _mapper.Map<Brand>(request);
-        brand.Slug = SlugGenerator.Generate(request.Name);
+        brand.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
 
         await _unitOfWork.Repository<Brand>().AddAsync(brand, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -85,7 +85,7 @@ public class BrandService : IBrandService
         }
 
         _mapper.Map(request, brand);
-        brand.Slug = SlugGenerator.Generate(request.Name);
+        brand.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
 
         _unitOfWork.Repository<Brand>().Update(brand);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

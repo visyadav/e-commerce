@@ -28,7 +28,14 @@ export default function BrandsPage() {
   const [editingBrand, setEditingBrand] = useState<BrandDto | null>(null);
   
   // Form state
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    slug: "",
+    description: "", 
+    logoUrl: "", 
+    website: "", 
+    isActive: true 
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const fetchBrands = async () => {
@@ -51,14 +58,32 @@ export default function BrandsPage() {
 
   const handleOpenNew = () => {
     setEditingBrand(null);
-    setFormData({ name: "", description: "" });
+    setFormData({ name: "", slug: "", description: "", logoUrl: "", website: "", isActive: true });
     setIsSheetOpen(true);
   };
 
   const handleOpenEdit = (brand: BrandDto) => {
     setEditingBrand(brand);
-    setFormData({ name: brand.name, description: brand.description || "" });
+    setFormData({ 
+      name: brand.name, 
+      slug: brand.slug,
+      description: brand.description || "", 
+      logoUrl: brand.logoUrl || "",
+      website: brand.website || "",
+      isActive: brand.isActive !== undefined ? brand.isActive : true
+    });
     setIsSheetOpen(true);
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    if (!editingBrand) {
+      // Auto-generate slug only when creating new
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+      setFormData({ ...formData, name, slug });
+    } else {
+      setFormData({ ...formData, name });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -180,7 +205,7 @@ export default function BrandsPage() {
       )}
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent>
+        <SheetContent className="sm:max-w-xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{editingBrand ? "Edit Brand" : "Add Brand"}</SheetTitle>
             <SheetDescription>
@@ -188,22 +213,59 @@ export default function BrandsPage() {
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none">Name</label>
-              <Input
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Brand name"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none">Description</label>
-              <Input
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brand description"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  required
+                  value={formData.name}
+                  onChange={handleNameChange}
+                  placeholder="Brand name"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Slug</label>
+                <Input
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  placeholder="brand-slug"
+                />
+              </div>
+              <div className="flex flex-col gap-2 col-span-2">
+                <label className="text-sm font-medium">Description</label>
+                <Input
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Brand description"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Logo URL</label>
+                <Input
+                  value={formData.logoUrl}
+                  onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                  placeholder="https://example.com/logo.png"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Website</label>
+                <Input
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="https://example.com"
+                />
+              </div>
+              <div className="flex flex-col gap-2 col-span-2 mt-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  />
+                  <span className="text-sm font-medium">Active (visible in store)</span>
+                </label>
+              </div>
             </div>
             <div className="flex justify-end pt-4">
               <Button type="submit" disabled={submitting}>

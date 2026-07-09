@@ -3,6 +3,7 @@ namespace ECommerce.Api.Modules.Catalog.Products.DTOs;
 public class CreateProductRequest
 {
     public required string Name { get; set; }
+    public string Slug { get; set; } = string.Empty;
     public string? Description { get; set; }
     public required string Sku { get; set; }
     public decimal Price { get; set; }

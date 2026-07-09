@@ -8,6 +8,8 @@ public class CategoryDto
     public string Name { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public bool IsActive { get; set; }
     public int SortOrder { get; set; }
     public Guid? ParentCategoryId { get; set; }
     public string? ParentCategoryName { get; set; }
@@ -19,11 +21,14 @@ public class CreateCategoryRequest
     [MaxLength(256)]
     public string Name { get; set; } = string.Empty;
 
+    public string Slug { get; set; } = string.Empty;
+
     [MaxLength(1000)]
     public string? Description { get; set; }
 
+    public string? ImageUrl { get; set; }
+    public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }
-
     public Guid? ParentCategoryId { get; set; }
 }
 
@@ -33,10 +38,13 @@ public class UpdateCategoryRequest
     [MaxLength(256)]
     public string Name { get; set; } = string.Empty;
 
+    public string Slug { get; set; } = string.Empty;
+
     [MaxLength(1000)]
     public string? Description { get; set; }
 
+    public string? ImageUrl { get; set; }
+    public bool IsActive { get; set; }
     public int SortOrder { get; set; }
-
     public Guid? ParentCategoryId { get; set; }
 }

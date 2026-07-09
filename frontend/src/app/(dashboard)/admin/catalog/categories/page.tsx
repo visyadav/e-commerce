@@ -28,7 +28,15 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<CategoryDto | null>(null);
   
   // Form state
-  const [formData, setFormData] = useState({ name: "", description: "", sortOrder: 0, parentCategoryId: "" });
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    slug: "",
+    description: "", 
+    imageUrl: "",
+    sortOrder: 0, 
+    parentCategoryId: "",
+    isActive: true 
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const fetchCategories = async () => {
@@ -51,7 +59,7 @@ export default function CategoriesPage() {
 
   const handleOpenNew = () => {
     setEditingCategory(null);
-    setFormData({ name: "", description: "", sortOrder: 0, parentCategoryId: "" });
+    setFormData({ name: "", slug: "", description: "", imageUrl: "", sortOrder: 0, parentCategoryId: "", isActive: true });
     setIsSheetOpen(true);
   };
 
@@ -59,11 +67,24 @@ export default function CategoriesPage() {
     setEditingCategory(category);
     setFormData({ 
       name: category.name, 
+      slug: category.slug,
       description: category.description || "",
+      imageUrl: category.imageUrl || "",
       sortOrder: category.sortOrder,
-      parentCategoryId: category.parentCategoryId || ""
+      parentCategoryId: category.parentCategoryId || "",
+      isActive: category.isActive !== undefined ? category.isActive : true
     });
     setIsSheetOpen(true);
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    if (!editingCategory) {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+      setFormData({ ...formData, name, slug });
+    } else {
+      setFormData({ ...formData, name });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -84,7 +105,10 @@ export default function CategoriesPage() {
       
       const submitData = {
         name: formData.name,
+        slug: formData.slug,
         description: formData.description,
+        imageUrl: formData.imageUrl,
+        isActive: formData.isActive,
         sortOrder: formData.sortOrder,
         parentCategoryId: formData.parentCategoryId === "" ? undefined : formData.parentCategoryId
       };
@@ -195,7 +219,7 @@ export default function CategoriesPage() {
       )}
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent>
+        <SheetContent className="sm:max-w-xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{editingCategory ? "Edit Category" : "Add Category"}</SheetTitle>
             <SheetDescription>
@@ -203,38 +227,67 @@ export default function CategoriesPage() {
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none">Name</label>
-              <Input
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Category name"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none">Description</label>
-              <Input
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Category description"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none">Sort Order</label>
-              <Input
-                type="number"
-                value={formData.sortOrder}
-                onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none">Parent Category ID (Optional)</label>
-              <Input
-                value={formData.parentCategoryId}
-                onChange={(e) => setFormData({ ...formData, parentCategoryId: e.target.value })}
-                placeholder="Enter Parent ID if any"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  required
+                  value={formData.name}
+                  onChange={handleNameChange}
+                  placeholder="Category name"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Slug</label>
+                <Input
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  placeholder="category-slug"
+                />
+              </div>
+              <div className="flex flex-col gap-2 col-span-2">
+                <label className="text-sm font-medium">Description</label>
+                <Input
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Category description"
+                />
+              </div>
+              <div className="flex flex-col gap-2 col-span-2">
+                <label className="text-sm font-medium">Image URL</label>
+                <Input
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  placeholder="https://example.com/image.png"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Sort Order</label>
+                <Input
+                  type="number"
+                  value={formData.sortOrder}
+                  onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Parent Category ID</label>
+                <Input
+                  value={formData.parentCategoryId}
+                  onChange={(e) => setFormData({ ...formData, parentCategoryId: e.target.value })}
+                  placeholder="Optional Parent ID"
+                />
+              </div>
+              <div className="flex flex-col gap-2 col-span-2 mt-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  />
+                  <span className="text-sm font-medium">Active (visible in store)</span>
+                </label>
+              </div>
             </div>
             <div className="flex justify-end pt-4">
               <Button type="submit" disabled={submitting}>
