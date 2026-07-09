@@ -21,16 +21,39 @@ public class CategoryService : ICategoryService
         _mapper = mapper;
     }
 
-    public async Task<ApiResponse<List<CategoryDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<ApiResponse<List<CategoryDto>>> GetLookupAsync(CancellationToken cancellationToken = default)
     {
         var categories = await _unitOfWork.Repository<Category>().Query()
-            .Include(c => c.ParentCategory)
             .OrderBy(c => c.SortOrder)
             .ThenBy(c => c.Name)
             .ToListAsync(cancellationToken);
 
         var dtos = _mapper.Map<List<CategoryDto>>(categories);
-        return ApiResponse<List<CategoryDto>>.SuccessResponse(dtos, "Categories retrieved successfully.");
+        return ApiResponse<List<CategoryDto>>.SuccessResponse(dtos, "Category lookup retrieved successfully.");
+    }
+
+    public async Task<PagedResponse<CategoryDto>> GetPaginatedAsync(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
+    {
+        var query = _unitOfWork.Repository<Category>().Query()
+            .Include(c => c.ParentCategory)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(c => c.Name.Contains(searchTerm) || (c.Description != null && c.Description.Contains(searchTerm)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var categories = await query
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.Name)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var dtos = _mapper.Map<List<CategoryDto>>(categories);
+        return PagedResponse<CategoryDto>.Create(dtos, pageNumber, pageSize, totalCount, "Categories retrieved successfully.");
     }
 
     public async Task<ApiResponse<CategoryDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)

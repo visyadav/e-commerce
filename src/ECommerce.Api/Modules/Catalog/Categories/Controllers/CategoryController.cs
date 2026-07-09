@@ -20,10 +20,14 @@ public class CategoryController : BaseApiController
 
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<List<CategoryDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCategories(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResponse<CategoryDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCategories(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? searchTerm = null,
+        CancellationToken cancellationToken = default)
     {
-        var response = await _categoryService.GetAllAsync(cancellationToken);
+        var response = await _categoryService.GetPaginatedAsync(pageNumber, pageSize, searchTerm, cancellationToken);
         return Ok(response);
     }
 

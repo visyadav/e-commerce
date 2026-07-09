@@ -21,14 +21,35 @@ public class BrandService : IBrandService
         _mapper = mapper;
     }
 
-    public async Task<ApiResponse<List<BrandDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<ApiResponse<List<BrandDto>>> GetLookupAsync(CancellationToken cancellationToken = default)
     {
         var brands = await _unitOfWork.Repository<Brand>().Query()
             .OrderBy(b => b.Name)
             .ToListAsync(cancellationToken);
 
         var dtos = _mapper.Map<List<BrandDto>>(brands);
-        return ApiResponse<List<BrandDto>>.SuccessResponse(dtos, "Brands retrieved successfully.");
+        return ApiResponse<List<BrandDto>>.SuccessResponse(dtos, "Brand lookup retrieved successfully.");
+    }
+
+    public async Task<PagedResponse<BrandDto>> GetPaginatedAsync(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
+    {
+        var query = _unitOfWork.Repository<Brand>().Query();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(b => b.Name.Contains(searchTerm) || (b.Description != null && b.Description.Contains(searchTerm)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var brands = await query
+            .OrderBy(b => b.Name)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var dtos = _mapper.Map<List<BrandDto>>(brands);
+        return PagedResponse<BrandDto>.Create(dtos, pageNumber, pageSize, totalCount, "Brands retrieved successfully.");
     }
 
     public async Task<ApiResponse<BrandDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)

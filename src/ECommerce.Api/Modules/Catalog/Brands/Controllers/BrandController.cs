@@ -20,10 +20,14 @@ public class BrandController : BaseApiController
 
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<List<BrandDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetBrands(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResponse<BrandDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetBrands(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? searchTerm = null,
+        CancellationToken cancellationToken = default)
     {
-        var response = await _brandService.GetAllAsync(cancellationToken);
+        var response = await _brandService.GetPaginatedAsync(pageNumber, pageSize, searchTerm, cancellationToken);
         return Ok(response);
     }
 
