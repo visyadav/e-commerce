@@ -20,6 +20,7 @@ public class Product : AuditableEntity
     public string? Tags { get; set; }
     public double Weight { get; set; }
     public string? Dimensions { get; set; }
+    public bool IsDeleted { get; set; } = false;
 
     // Foreign Keys
     public Guid CategoryId { get; set; }
