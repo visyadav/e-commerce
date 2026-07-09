@@ -1,3 +1,4 @@
+using ECommerce.Shared.Logging;
 using ECommerce.Api.Modules.Navigation.Interfaces;
 using ECommerce.Api.Modules.Navigation.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +9,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddNavigationModule(this IServiceCollection services)
     {
-        services.AddScoped<INavigationService, NavigationService>();
+        services.AddScopedWithLogging<INavigationService, NavigationService>();
         return services;
     }
 }

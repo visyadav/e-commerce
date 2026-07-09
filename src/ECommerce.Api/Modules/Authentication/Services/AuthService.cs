@@ -20,6 +20,7 @@ public class AuthService : IAuthService
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
     private readonly JwtSettings _jwtSettings;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -27,7 +28,8 @@ public class AuthService : IAuthService
         IJwtTokenService jwtTokenService,
         IMapper mapper,
         IUnitOfWork unitOfWork,
-        IOptions<JwtSettings> jwtSettings)
+        IOptions<JwtSettings> jwtSettings,
+        ILogger<AuthService> logger)
     {
         _userManager = userManager;
         _roleManager = roleManager;
@@ -35,16 +37,20 @@ public class AuthService : IAuthService
         _mapper = mapper;
         _unitOfWork = unitOfWork;
         _jwtSettings = jwtSettings.Value;
+        _logger = logger;
     }
 
     public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation($"Checking User exist or not for this email id {request.Email}");
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
         {
+            _logger.LogWarning($"User with this email {request.Email} already exists.");
             return ApiResponse<AuthResponse>.FailureResponse("User with this email already exists.", ["Email already in use."]);
         }
 
+        _logger.LogInformation($"Start Mapping for User.");
         var user = _mapper.Map<ApplicationUser>(request);
         
         var result = await _userManager.CreateAsync(user, request.Password);

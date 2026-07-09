@@ -1,3 +1,4 @@
+using ECommerce.Shared.Logging;
 using ECommerce.Api.Modules.Cart.Interfaces;
 using ECommerce.Api.Modules.Cart.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +9,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddCartModule(this IServiceCollection services)
     {
-        services.AddScoped<ICartService, CartService>();
+        services.AddScopedWithLogging<ICartService, CartService>();
         return services;
     }
 }

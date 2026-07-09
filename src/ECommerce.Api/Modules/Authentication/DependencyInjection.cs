@@ -1,3 +1,4 @@
+using ECommerce.Shared.Logging;
 using ECommerce.Api.Modules.Authentication.Interfaces;
 using ECommerce.Api.Modules.Authentication.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +9,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddAuthenticationModule(this IServiceCollection services)
     {
-        services.AddScoped<IAuthService, AuthService>();
+        services.AddScopedWithLogging<IAuthService, AuthService>();
         return services;
     }
 }

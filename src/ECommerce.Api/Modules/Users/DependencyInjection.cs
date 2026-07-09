@@ -1,3 +1,4 @@
+using ECommerce.Shared.Logging;
 using ECommerce.Api.Modules.Users.Interfaces;
 using ECommerce.Api.Modules.Users.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +9,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddUsersModule(this IServiceCollection services)
     {
-        services.AddScoped<IProfileService, ProfileService>();
+        services.AddScopedWithLogging<IProfileService, ProfileService>();
         return services;
     }
 }

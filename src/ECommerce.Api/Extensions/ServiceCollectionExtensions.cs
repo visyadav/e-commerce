@@ -30,10 +30,11 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options => options.ConfigureSwagger());
 
-        // 7. Configure Controllers with Global Validation Filter
+        // 7. Configure Controllers with Global Validation and Logging Filters
         services.AddControllers(options =>
         {
             options.Filters.Add<ValidationFilter>();
+            options.Filters.Add<LoggingActionFilter>();
         });
 
         // 8. HttpContextAccessor for CurrentUserService

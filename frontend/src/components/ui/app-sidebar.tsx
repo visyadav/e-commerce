@@ -42,7 +42,8 @@ import {
     Home,
     Moon,
     Sun,
-    Palette
+    Palette,
+    
 } from "lucide-react"
 
 import { useAuth } from "@/src/features/auth/hooks/useAuth"

@@ -1,3 +1,4 @@
+using ECommerce.Shared.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ECommerce.Api.Modules.Coupons;

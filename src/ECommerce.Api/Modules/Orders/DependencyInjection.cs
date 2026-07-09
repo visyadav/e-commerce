@@ -1,3 +1,4 @@
+using ECommerce.Shared.Logging;
 using ECommerce.Api.Modules.Orders.Interfaces;
 using ECommerce.Api.Modules.Orders.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +9,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddOrdersModule(this IServiceCollection services)
     {
-        services.AddScoped<IOrderService, OrderService>();
+        services.AddScopedWithLogging<IOrderService, OrderService>();
         return services;
     }
 }

@@ -150,7 +150,7 @@ public class DataSeeder
         var dashboard = new MenuItem
         {
             Title = "Dashboard",
-            Icon = "dashboard",
+            Icon = "LayoutDashboard",
             Url = "/admin/dashboard",
             SortOrder = 1,
             Module = "Dashboard",
@@ -160,7 +160,7 @@ public class DataSeeder
         var catalog = new MenuItem
         {
             Title = "Catalog",
-            Icon = "inventory_2",
+            Icon = "ShelvingUnit",
             SortOrder = 2,
             Module = "Catalog",
             AllowedRoles = adminRoles,
@@ -175,7 +175,7 @@ public class DataSeeder
         var inventory = new MenuItem
         {
             Title = "Inventory",
-            Icon = "warehouse",
+            Icon = "Warehouse",
             Url = "/admin/inventory",
             SortOrder = 3,
             Module = "Inventory",
@@ -185,7 +185,7 @@ public class DataSeeder
         var orders = new MenuItem
         {
             Title = "Orders",
-            Icon = "shopping_bag",
+            Icon = "Package",
             Url = "/admin/orders",
             SortOrder = 4,
             Module = "Orders",
@@ -195,7 +195,7 @@ public class DataSeeder
         var customers = new MenuItem
         {
             Title = "Customers",
-            Icon = "people",
+            Icon = "Users",
             Url = "/admin/customers",
             SortOrder = 5,
             Module = "Users",
@@ -205,7 +205,7 @@ public class DataSeeder
         var payments = new MenuItem
         {
             Title = "Payments",
-            Icon = "payment",
+            Icon = "IndianRupee",
             Url = "/admin/payments",
             SortOrder = 6,
             Module = "Payments",
@@ -215,7 +215,7 @@ public class DataSeeder
         var coupons = new MenuItem
         {
             Title = "Coupons",
-            Icon = "local_offer",
+            Icon = "TicketPercent",
             Url = "/admin/coupons",
             SortOrder = 7,
             Module = "Coupons",
@@ -225,7 +225,7 @@ public class DataSeeder
         var adminReviews = new MenuItem
         {
             Title = "Reviews",
-            Icon = "star_rate",
+            Icon = "StarPlus",
             Url = "/admin/reviews",
             SortOrder = 8,
             Module = "Reviews",
@@ -235,7 +235,7 @@ public class DataSeeder
         var adminNotifications = new MenuItem
         {
             Title = "Notifications",
-            Icon = "notifications",
+            Icon = "BellCheck",
             Url = "/admin/notifications",
             SortOrder = 9,
             Module = "Notifications",
@@ -245,7 +245,7 @@ public class DataSeeder
         var settings = new MenuItem
         {
             Title = "Settings",
-            Icon = "settings",
+            Icon = "Settings",
             Url = "/admin/settings",
             SortOrder = 10,
             Module = "Admin",
@@ -255,7 +255,7 @@ public class DataSeeder
         var userManagement = new MenuItem
         {
             Title = "User Management",
-            Icon = "manage_accounts",
+            Icon = "UserRoundPen",
             Url = "/admin/permissions",
             SortOrder = 11,
             Module = "Admin",

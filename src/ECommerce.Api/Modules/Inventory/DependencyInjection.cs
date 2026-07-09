@@ -1,3 +1,4 @@
+using ECommerce.Shared.Logging;
 using ECommerce.Api.Modules.Inventory.Interfaces;
 using ECommerce.Api.Modules.Inventory.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +9,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInventoryModule(this IServiceCollection services)
     {
-        services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScopedWithLogging<IInventoryService, InventoryService>();
         return services;
     }
 }
