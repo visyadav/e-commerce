@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/src/components/ui/dialog";
 import { toast } from "sonner";
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Edit2, Plus, Trash2, Loader2 } from "lucide-react";
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<BrandDto[]>([]);
@@ -26,6 +26,7 @@ export default function BrandsPage() {
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<BrandDto | null>(null);
+  const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -62,17 +63,26 @@ export default function BrandsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleOpenEdit = (brand: BrandDto) => {
-    setEditingBrand(brand);
-    setFormData({
-      name: brand.name,
-      slug: brand.slug,
-      description: brand.description || "",
-      logoUrl: brand.logoUrl || "",
-      website: brand.website || "",
-      isActive: brand.isActive !== undefined ? brand.isActive : true
-    });
-    setIsDialogOpen(true);
+  const handleOpenEdit = async (brand: BrandDto) => {
+    try {
+      setLoadingEditId(brand.id);
+      const freshBrand = await brandService.getById(brand.id);
+      setEditingBrand(freshBrand);
+      setFormData({
+        name: freshBrand.name,
+        slug: freshBrand.slug,
+        description: freshBrand.description || "",
+        logoUrl: freshBrand.logoUrl || "",
+        website: freshBrand.website || "",
+        isActive: freshBrand.isActive !== undefined ? freshBrand.isActive : true
+      });
+      setIsDialogOpen(true);
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred while loading brand details");
+    } finally {
+      setLoadingEditId(null);
+    }
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,8 +170,8 @@ export default function BrandsPage() {
                   <td className="px-6 py-4 text-muted-foreground">{brand.slug}</td>
                   <td className="px-6 py-4 text-muted-foreground">{brand.description || "-"}</td>
                   <td className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(brand)}>
-                      <Edit2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(brand)} disabled={loadingEditId === brand.id}>
+                      {loadingEditId === brand.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit2 className="h-4 w-4" />}
                     </Button>
                     <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(brand.id)}>
                       <Trash2 className="h-4 w-4" />

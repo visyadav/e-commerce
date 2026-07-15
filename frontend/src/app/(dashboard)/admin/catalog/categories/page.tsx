@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/src/components/ui/dialog";
 import { toast } from "sonner";
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Edit2, Plus, Trash2, Loader2 } from "lucide-react";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryDto[]>([]);
@@ -26,6 +26,7 @@ export default function CategoriesPage() {
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryDto | null>(null);
+  const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({ 
@@ -63,18 +64,31 @@ export default function CategoriesPage() {
     setIsDialogOpen(true);
   };
 
-  const handleOpenEdit = (category: CategoryDto) => {
-    setEditingCategory(category);
-    setFormData({ 
-      name: category.name, 
-      slug: category.slug,
-      description: category.description || "",
-      imageUrl: category.imageUrl || "",
-      sortOrder: category.sortOrder,
-      parentCategoryId: category.parentCategoryId || "",
-      isActive: category.isActive !== undefined ? category.isActive : true
-    });
-    setIsDialogOpen(true);
+  const handleOpenEdit = async (category: CategoryDto) => {
+    try {
+      setLoadingEditId(category.id);
+      const freshCategory = await categoryService.getById(category.id);
+      if (freshCategory) {
+        setEditingCategory(freshCategory);
+        setFormData({ 
+          name: freshCategory.name, 
+          slug: freshCategory.slug,
+          description: freshCategory.description || "",
+          imageUrl: freshCategory.imageUrl || "",
+          sortOrder: freshCategory.sortOrder,
+          parentCategoryId: freshCategory.parentCategoryId || "",
+          isActive: freshCategory.isActive !== undefined ? freshCategory.isActive : true
+        });
+        setIsDialogOpen(true);
+      } else {
+        toast.error("Failed to load category details");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred while loading category details");
+    } finally {
+      setLoadingEditId(null);
+    }
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,8 +188,8 @@ export default function CategoriesPage() {
                   <td className="px-6 py-4 text-muted-foreground">{category.parentCategoryName || "-"}</td>
                   <td className="px-6 py-4 text-muted-foreground">{category.sortOrder}</td>
                   <td className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(category)}>
-                      <Edit2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(category)} disabled={loadingEditId === category.id}>
+                      {loadingEditId === category.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit2 className="h-4 w-4" />}
                     </Button>
                     <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(category.id)}>
                       <Trash2 className="h-4 w-4" />

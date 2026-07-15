@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from "@/src/components/ui/dialog";
 import { toast } from "sonner";
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Edit2, Plus, Trash2, Loader2 } from "lucide-react";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductDto[]>([]);
@@ -36,6 +36,7 @@ export default function ProductsPage() {
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductDto | null>(null);
+  const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -119,29 +120,42 @@ export default function ProductsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleOpenEdit = (product: ProductDto) => {
-    setEditingProduct(product);
-    setFormData({ 
-      name: product.name,
-      slug: product.slug,
-      description: product.description || "",
-      sku: product.sku,
-      price: product.price,
-      compareAtPrice: product.compareAtPrice || 0,
-      costPrice: product.costPrice || 0,
-      stockQuantity: product.stockQuantity,
-      lowStockThreshold: product.lowStockThreshold || 10,
-      isActive: product.isActive !== undefined ? product.isActive : true,
-      isFeatured: product.isFeatured || false,
-      imageFiles: [],
-      imageUrls: product.imageUrls || [],
-      tags: product.tags?.map(t => t.name) || [],
-      weight: product.weight || 0,
-      dimensions: product.dimensions || "",
-      categoryId: product.categoryId,
-      brandId: product.brandId || ""
-    });
-    setIsDialogOpen(true);
+  const handleOpenEdit = async (product: ProductDto) => {
+    try {
+      setLoadingEditId(product.id);
+      const freshProduct = await productService.getById(product.id);
+      if (freshProduct) {
+        setEditingProduct(freshProduct);
+        setFormData({ 
+          name: freshProduct.name,
+          slug: freshProduct.slug,
+          description: freshProduct.description || "",
+          sku: freshProduct.sku,
+          price: freshProduct.price,
+          compareAtPrice: freshProduct.compareAtPrice || 0,
+          costPrice: freshProduct.costPrice || 0,
+          stockQuantity: freshProduct.stockQuantity,
+          lowStockThreshold: freshProduct.lowStockThreshold || 10,
+          isActive: freshProduct.isActive !== undefined ? freshProduct.isActive : true,
+          isFeatured: freshProduct.isFeatured || false,
+          imageFiles: [],
+          imageUrls: freshProduct.imageUrls || [],
+          tags: freshProduct.tags?.map(t => t.name) || [],
+          weight: freshProduct.weight || 0,
+          dimensions: freshProduct.dimensions || "",
+          categoryId: freshProduct.categoryId,
+          brandId: freshProduct.brandId || ""
+        });
+        setIsDialogOpen(true);
+      } else {
+        toast.error("Failed to load product details");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred while loading product details");
+    } finally {
+      setLoadingEditId(null);
+    }
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,8 +289,8 @@ export default function ProductsPage() {
                   <td className="px-6 py-4 text-muted-foreground">{product.categoryName}</td>
                   <td className="px-6 py-4 text-muted-foreground">{product.brandName || "-"}</td>
                   <td className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(product)}>
-                      <Edit2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(product)} disabled={loadingEditId === product.id}>
+                      {loadingEditId === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit2 className="h-4 w-4" />}
                     </Button>
                     <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(product.id)}>
                       <Trash2 className="h-4 w-4" />
