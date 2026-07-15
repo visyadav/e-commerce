@@ -15,8 +15,7 @@ public class Product : AuditableEntity
     public int LowStockThreshold { get; set; } = 10;
     public bool IsActive { get; set; } = true;
     public bool IsFeatured { get; set; }
-    public string? ImageUrl { get; set; }
-    public List<string> ImageUrls { get; set; } = [];
+    public ICollection<ProductImage> Images { get; set; } = [];
     public string? Tags { get; set; }
     public double Weight { get; set; }
     public string? Dimensions { get; set; }

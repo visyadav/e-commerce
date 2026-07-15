@@ -7,6 +7,7 @@ using ECommerce.Domain.Interfaces;
 using ECommerce.Shared.Exceptions;
 using ECommerce.Shared.Responses;
 using ECommerce.Shared.Utilities;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Api.Modules.Catalog.Products.Services;
@@ -15,11 +16,13 @@ public class ProductService : IProductService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IWebHostEnvironment _env;
 
-    public ProductService(IUnitOfWork unitOfWork, IMapper mapper)
+    public ProductService(IUnitOfWork unitOfWork, IMapper mapper, IWebHostEnvironment env)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _env = env;
     }
 
     public async Task<ApiResponse<ProductDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -27,6 +30,7 @@ public class ProductService : IProductService
         var product = await _unitOfWork.Repository<Product>().Query()
             .Include(p => p.Category)
             .Include(p => p.Brand)
+            .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (product == null)
@@ -53,6 +57,7 @@ public class ProductService : IProductService
         
         // Apply specification filters and sorting
         var filteredQuery = query.ApplySpecification(categoryId, brandId, minPrice, maxPrice, searchTerm, sortBy);
+        filteredQuery = filteredQuery.Include(p => p.Images);
 
         // Get total count for pagination metadata
         var totalCount = await filteredQuery.CountAsync(cancellationToken);
@@ -90,6 +95,37 @@ public class ProductService : IProductService
         var product = _mapper.Map<Product>(request);
         product.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
         
+        if (request.ImageFiles != null && request.ImageFiles.Any())
+        {
+            var uploadPath = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", "products");
+            if (!Directory.Exists(uploadPath))
+            {
+                Directory.CreateDirectory(uploadPath);
+            }
+
+            var sortOrder = 0;
+            foreach (var file in request.ImageFiles)
+            {
+                if (file.Length > 0)
+                {
+                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+                    var filePath = Path.Combine(uploadPath, fileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream, cancellationToken);
+                    }
+
+                    product.Images.Add(new ProductImage
+                    {
+                        ImageUrl = $"/uploads/products/{fileName}",
+                        IsPrimary = sortOrder == 0,
+                        SortOrder = sortOrder
+                    });
+                    sortOrder++;
+                }
+            }
+        }
+        
         await _unitOfWork.Repository<Product>().AddAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -106,7 +142,10 @@ public class ProductService : IProductService
 
     public async Task<ApiResponse<ProductDto>> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default)
     {
-        var product = await _unitOfWork.Repository<Product>().GetByIdAsync(id, cancellationToken);
+        var product = await _unitOfWork.Repository<Product>().Query()
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+            
         if (product == null)
         {
             throw new NotFoundException(nameof(Product), id);
@@ -132,6 +171,41 @@ public class ProductService : IProductService
         // Map updates to existing entity
         _mapper.Map(request, product);
         product.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
+
+        if (request.ImageFiles != null && request.ImageFiles.Any())
+        {
+            var uploadPath = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", "products");
+            if (!Directory.Exists(uploadPath))
+            {
+                Directory.CreateDirectory(uploadPath);
+            }
+
+            // Remove existing images if they are being replaced
+            // For simplicity, we just clear and add new ones if new files are uploaded
+            product.Images.Clear();
+            
+            var sortOrder = 0;
+            foreach (var file in request.ImageFiles)
+            {
+                if (file.Length > 0)
+                {
+                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+                    var filePath = Path.Combine(uploadPath, fileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream, cancellationToken);
+                    }
+
+                    product.Images.Add(new ProductImage
+                    {
+                        ImageUrl = $"/uploads/products/{fileName}",
+                        IsPrimary = sortOrder == 0,
+                        SortOrder = sortOrder
+                    });
+                    sortOrder++;
+                }
+            }
+        }
 
         _unitOfWork.Repository<Product>().Update(product);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

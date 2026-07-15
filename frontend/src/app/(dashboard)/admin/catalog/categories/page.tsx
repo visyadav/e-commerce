@@ -7,12 +7,12 @@ import { categoryService } from "@/src/services/catalog/category-service";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/src/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/src/components/ui/dialog";
 import { toast } from "sonner";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 
@@ -23,8 +23,8 @@ export default function CategoriesPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   
-  // Sheet state
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  // Dialog state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryDto | null>(null);
   
   // Form state
@@ -60,7 +60,7 @@ export default function CategoriesPage() {
   const handleOpenNew = () => {
     setEditingCategory(null);
     setFormData({ name: "", slug: "", description: "", imageUrl: "", sortOrder: 0, parentCategoryId: "", isActive: true });
-    setIsSheetOpen(true);
+    setIsDialogOpen(true);
   };
 
   const handleOpenEdit = (category: CategoryDto) => {
@@ -74,7 +74,7 @@ export default function CategoriesPage() {
       parentCategoryId: category.parentCategoryId || "",
       isActive: category.isActive !== undefined ? category.isActive : true
     });
-    setIsSheetOpen(true);
+    setIsDialogOpen(true);
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,7 +120,7 @@ export default function CategoriesPage() {
         await categoryService.create(submitData);
         toast.success("Category created successfully");
       }
-      setIsSheetOpen(false);
+      setIsDialogOpen(false);
       fetchCategories();
     } catch (error) {
       toast.error(editingCategory ? "Failed to update category" : "Failed to create category");
@@ -218,14 +218,14 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>{editingCategory ? "Edit Category" : "Add Category"}</SheetTitle>
-            <SheetDescription>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingCategory ? "Edit Category" : "Add Category"}</DialogTitle>
+            <DialogDescription>
               {editingCategory ? "Update the category details." : "Create a new category."}
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
@@ -295,8 +295,8 @@ export default function CategoriesPage() {
               </Button>
             </div>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace ECommerce.Api.Modules.Catalog.Products.DTOs;
 
 public class UpdateProductRequest
@@ -13,8 +15,7 @@ public class UpdateProductRequest
     public int LowStockThreshold { get; set; } = 10;
     public bool IsActive { get; set; } = true;
     public bool IsFeatured { get; set; }
-    public string? ImageUrl { get; set; }
-    public List<string> ImageUrls { get; set; } = [];
+    public List<IFormFile>? ImageFiles { get; set; }
     public string? Tags { get; set; }
     public double Weight { get; set; }
     public string? Dimensions { get; set; }

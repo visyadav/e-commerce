@@ -9,12 +9,12 @@ import { brandService } from "@/src/services/catalog/brand-service";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/src/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/src/components/ui/dialog";
 import { toast } from "sonner";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 
@@ -28,8 +28,8 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   
-  // Sheet state
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  // Dialog state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductDto | null>(null);
   
   // Form state
@@ -45,7 +45,8 @@ export default function ProductsPage() {
     lowStockThreshold: 10,
     isActive: true,
     isFeatured: false,
-    imageUrl: "",
+    imageFiles: [] as File[],
+    imageUrls: [] as string[],
     tags: "",
     weight: 0,
     dimensions: "",
@@ -100,14 +101,15 @@ export default function ProductsPage() {
       lowStockThreshold: 10,
       isActive: true,
       isFeatured: false,
-      imageUrl: "",
+      imageFiles: [],
+      imageUrls: [],
       tags: "",
       weight: 0,
       dimensions: "",
       categoryId: categories.length > 0 ? categories[0].id : "",
       brandId: ""
     });
-    setIsSheetOpen(true);
+    setIsDialogOpen(true);
   };
 
   const handleOpenEdit = (product: ProductDto) => {
@@ -124,14 +126,15 @@ export default function ProductsPage() {
       lowStockThreshold: product.lowStockThreshold || 10,
       isActive: product.isActive !== undefined ? product.isActive : true,
       isFeatured: product.isFeatured || false,
-      imageUrl: product.imageUrl || "",
+      imageFiles: [],
+      imageUrls: product.imageUrls || [],
       tags: product.tags || "",
       weight: product.weight || 0,
       dimensions: product.dimensions || "",
       categoryId: product.categoryId,
       brandId: product.brandId || ""
     });
-    setIsSheetOpen(true);
+    setIsDialogOpen(true);
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,6 +144,12 @@ export default function ProductsPage() {
       setFormData({ ...formData, name, slug });
     } else {
       setFormData({ ...formData, name });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFormData({ ...formData, imageFiles: Array.from(e.target.files) });
     }
   };
 
@@ -180,7 +189,7 @@ export default function ProductsPage() {
         await productService.create(submitData);
         toast.success("Product created successfully");
       }
-      setIsSheetOpen(false);
+      setIsDialogOpen(false);
       fetchProducts();
     } catch (error) {
       toast.error(editingProduct ? "Failed to update product" : "Failed to create product");
@@ -282,14 +291,14 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto w-full">
-          <SheetHeader>
-            <SheetTitle>{editingProduct ? "Edit Product" : "Add Product"}</SheetTitle>
-            <SheetDescription>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto w-full">
+          <DialogHeader>
+            <DialogTitle>{editingProduct ? "Edit Product" : "Add Product"}</DialogTitle>
+            <DialogDescription>
               {editingProduct ? "Update the product details." : "Create a new product."}
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 py-6">
             
             <div className="grid grid-cols-2 gap-6">
@@ -332,12 +341,21 @@ export default function ProductsPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">Image URL</label>
+                <label className="text-sm font-medium">Product Images</label>
                 <Input
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://example.com/image.png"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
                 />
+                {formData.imageUrls.length > 0 && (
+                  <div className="flex gap-2 flex-wrap mt-2">
+                    {formData.imageUrls.map((url, i) => (
+                      <img key={i} src={url.startsWith('http') ? url : `http://localhost:5001${url}`} alt="Product" className="w-16 h-16 object-cover rounded-md border" />
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">Selecting new images will replace existing ones.</p>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -477,8 +495,8 @@ export default function ProductsPage() {
               </Button>
             </div>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

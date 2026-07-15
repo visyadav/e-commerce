@@ -11,7 +11,8 @@ public class ProductMappingProfile : Profile
     {
         CreateMap<Product, ProductDto>()
             .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name))
-            .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Brand != null ? src.Brand.Name : null));
+            .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Brand != null ? src.Brand.Name : null))
+            .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src => src.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).ToList()));
 
         CreateMap<CreateProductRequest, Product>()
             .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => SlugGenerator.Generate(src.Name)));

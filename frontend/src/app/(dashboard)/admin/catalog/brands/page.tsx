@@ -7,12 +7,12 @@ import { brandService } from "@/src/services/catalog/brand-service";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/src/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/src/components/ui/dialog";
 import { toast } from "sonner";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 
@@ -22,19 +22,19 @@ export default function BrandsPage() {
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
-  
-  // Sheet state
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  // Dialog state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<BrandDto | null>(null);
-  
+
   // Form state
-  const [formData, setFormData] = useState({ 
-    name: "", 
+  const [formData, setFormData] = useState({
+    name: "",
     slug: "",
-    description: "", 
-    logoUrl: "", 
-    website: "", 
-    isActive: true 
+    description: "",
+    logoUrl: "",
+    website: "",
+    isActive: true
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -59,20 +59,20 @@ export default function BrandsPage() {
   const handleOpenNew = () => {
     setEditingBrand(null);
     setFormData({ name: "", slug: "", description: "", logoUrl: "", website: "", isActive: true });
-    setIsSheetOpen(true);
+    setIsDialogOpen(true);
   };
 
   const handleOpenEdit = (brand: BrandDto) => {
     setEditingBrand(brand);
-    setFormData({ 
-      name: brand.name, 
+    setFormData({
+      name: brand.name,
       slug: brand.slug,
-      description: brand.description || "", 
+      description: brand.description || "",
       logoUrl: brand.logoUrl || "",
       website: brand.website || "",
       isActive: brand.isActive !== undefined ? brand.isActive : true
     });
-    setIsSheetOpen(true);
+    setIsDialogOpen(true);
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,7 +108,7 @@ export default function BrandsPage() {
         await brandService.create(formData);
         toast.success("Brand created successfully");
       }
-      setIsSheetOpen(false);
+      setIsDialogOpen(false);
       fetchBrands();
     } catch (error) {
       toast.error(editingBrand ? "Failed to update brand" : "Failed to create brand");
@@ -204,14 +204,14 @@ export default function BrandsPage() {
         </div>
       )}
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>{editingBrand ? "Edit Brand" : "Add Brand"}</SheetTitle>
-            <SheetDescription>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingBrand ? "Edit Brand" : "Add Brand"}</DialogTitle>
+            <DialogDescription>
               {editingBrand ? "Update the brand details." : "Create a new brand for your catalog."}
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
@@ -273,8 +273,8 @@ export default function BrandsPage() {
               </Button>
             </div>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

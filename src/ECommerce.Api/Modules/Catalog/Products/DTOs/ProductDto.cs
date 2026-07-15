@@ -14,7 +14,6 @@ public class ProductDto
     public int LowStockThreshold { get; set; }
     public bool IsActive { get; set; }
     public bool IsFeatured { get; set; }
-    public string? ImageUrl { get; set; }
     public List<string> ImageUrls { get; set; } = [];
     public string? Tags { get; set; }
     public double Weight { get; set; }

@@ -1,3 +1,4 @@
+using System.Linq;
 using AutoMapper;
 using ECommerce.Api.Modules.Inventory.Interfaces;
 using ECommerce.Api.Modules.Orders.DTOs;
@@ -153,7 +154,7 @@ public class OrderService : IOrderService
                     ProductId = ci.ProductId,
                     ProductName = ci.Product.Name,
                     ProductSku = ci.Product.Sku,
-                    ProductImageUrl = ci.Product.ImageUrl,
+                    ProductImageUrl = ci.Product.Images?.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).FirstOrDefault(),
                     Quantity = ci.Quantity,
                     UnitPrice = ci.Product.Price,
                     TotalPrice = ci.Product.Price * ci.Quantity,

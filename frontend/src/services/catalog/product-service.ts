@@ -18,11 +18,31 @@ export const productService = {
   },
 
   create: (data: CreateProductRequest) => {
-    return apiClient.post<ProductDto>("/Product", data);
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (key === 'imageFiles' && Array.isArray(value)) {
+          value.forEach((file: File) => formData.append('ImageFiles', file));
+        } else {
+          formData.append(key, value.toString());
+        }
+      }
+    });
+    return apiClient.post<ProductDto>("/Product", formData);
   },
 
   update: (id: string, data: UpdateProductRequest) => {
-    return apiClient.put<ProductDto>(`/Product/${id}`, data);
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (key === 'imageFiles' && Array.isArray(value)) {
+          value.forEach((file: File) => formData.append('ImageFiles', file));
+        } else {
+          formData.append(key, value.toString());
+        }
+      }
+    });
+    return apiClient.put<ProductDto>(`/Product/${id}`, formData);
   },
 
   delete: (id: string) => {

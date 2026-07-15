@@ -71,7 +71,6 @@ export interface ProductDto {
   lowStockThreshold: number;
   isActive: boolean;
   isFeatured: boolean;
-  imageUrl?: string;
   imageUrls: string[];
   tags?: string;
   weight: number;
@@ -96,8 +95,7 @@ export interface CreateProductRequest {
   lowStockThreshold: number;
   isActive: boolean;
   isFeatured: boolean;
-  imageUrl?: string;
-  imageUrls?: string[];
+  imageFiles?: File[];
   tags?: string;
   weight: number;
   dimensions?: string;
@@ -117,8 +115,7 @@ export interface UpdateProductRequest {
   lowStockThreshold: number;
   isActive: boolean;
   isFeatured: boolean;
-  imageUrl?: string;
-  imageUrls?: string[];
+  imageFiles?: File[];
   tags?: string;
   weight: number;
   dimensions?: string;

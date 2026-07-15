@@ -1,3 +1,4 @@
+using System.Linq;
 using AutoMapper;
 using ECommerce.Api.Modules.Cart.DTOs;
 using ECommerce.Domain.Entities;
@@ -11,7 +12,7 @@ public class CartMappingProfile : Profile
         CreateMap<CartItem, CartItemDto>()
             .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product.Name))
             .ForMember(dest => dest.ProductSku, opt => opt.MapFrom(src => src.Product.Sku))
-            .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => src.Product.ImageUrl))
+            .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => src.Product.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).FirstOrDefault()))
             .ForMember(dest => dest.UnitPrice, opt => opt.MapFrom(src => src.Product.Price));
     }
 }
