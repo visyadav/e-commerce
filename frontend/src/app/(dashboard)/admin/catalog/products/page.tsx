@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BASE_URL } from "@/src/constants/app";
 import { ProductDto, CategoryDto, BrandDto, TagDto } from "@/src/types/catalog";
 import { PaginationMeta } from "@/src/types/api";
 import { productService } from "@/src/services/catalog/product-service";
@@ -9,6 +10,7 @@ import { brandService } from "@/src/services/catalog/brand-service";
 import { tagService } from "@/src/services/catalog/tag-service";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
+import { Textarea } from "@/src/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -349,7 +351,7 @@ export default function ProductsPage() {
 
               <div className="flex flex-col gap-2 col-span-2">
                 <label className="text-sm font-medium">Description</label>
-                <Input
+                <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Product description"
@@ -377,7 +379,7 @@ export default function ProductsPage() {
                 {formData.imageUrls.length > 0 && (
                   <div className="flex gap-2 flex-wrap mt-2">
                     {formData.imageUrls.map((url, i) => (
-                      <img key={i} src={url.startsWith('http') ? url : `http://localhost:5001${url}`} alt="Product" className="w-16 h-16 object-cover rounded-md border" />
+                      <img key={i} src={url.startsWith('http') ? url : `${BASE_URL}${url}`} alt="Product" className="w-16 h-16 object-cover rounded-md border" />
                     ))}
                   </div>
                 )}

@@ -2,15 +2,17 @@ using ECommerce.Api.Configurations;
 using ECommerce.Api.Middleware;
 using ECommerce.Infrastructure.Persistence.Seed;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.FileProviders;
 
 namespace ECommerce.Api.Extensions;
 
 public static class ApplicationBuilderExtensions
 {
-    public static IApplicationBuilder UseApiPipeline(this IApplicationBuilder app, IHostEnvironment env)
+    public static IApplicationBuilder UseApiPipeline(this IApplicationBuilder app, IWebHostEnvironment env)
     {
         // 1. Global Exception Handling
         app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -35,7 +37,17 @@ public static class ApplicationBuilderExtensions
         }
 
         // Serve uploaded files (from local storage)
-        app.UseStaticFiles();
+        var webRootPath = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        if (!System.IO.Directory.Exists(webRootPath))
+        {
+            System.IO.Directory.CreateDirectory(webRootPath);
+        }
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(webRootPath),
+            RequestPath = ""
+        });
 
         app.UseRouting();
 
