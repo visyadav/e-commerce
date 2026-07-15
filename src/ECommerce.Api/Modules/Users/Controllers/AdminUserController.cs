@@ -50,4 +50,14 @@ public class AdminUserController : BaseApiController
         var response = await _adminUserService.UpdateUserAsync(id, request, CurrentUserId ?? "System", cancellationToken);
         return Ok(response);
     }
+
+    [HttpGet("{id}")]
+    [HasPermission("Users", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserDetailsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUserById(string id, CancellationToken cancellationToken)
+    {
+        var response = await _adminUserService.GetUserByIdAsync(id, cancellationToken);
+        return Ok(response);
+    }
 }

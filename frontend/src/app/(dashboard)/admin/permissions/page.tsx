@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminUserDto } from "@/src/types/users";
+import { AdminUserDto, AdminUserDetailsDto } from "@/src/types/users";
 import { PaginationMeta } from "@/src/types/api";
 import { userService } from "@/src/services/users/user-service";
 import { Button } from "@/src/components/ui/button";
@@ -26,8 +26,22 @@ export default function Permissions() {
 
   // Edit user state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<AdminUserDto | null>(null);
-  const [editForm, setEditForm] = useState({ firstName: "", lastName: "", phoneNumber: "" });
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [isFetchingUserDetails, setIsFetchingUserDetails] = useState(false);
+  
+  const [editForm, setEditForm] = useState({ 
+    firstName: "", 
+    lastName: "", 
+    phoneNumber: "",
+    profileImageUrl: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "",
+    zipCode: "",
+    themeColor: "default"
+  });
+  
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -68,21 +82,40 @@ export default function Permissions() {
     }
   };
 
-  const handleEditClick = (user: AdminUserDto) => {
-    setEditingUser(user);
-    setEditForm({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phoneNumber: user.phoneNumber || "",
-    });
+  const handleEditClick = async (user: AdminUserDto) => {
+    setEditingUserId(user.id);
     setIsEditDialogOpen(true);
+    setIsFetchingUserDetails(true);
+
+    try {
+      const details = await userService.getUserById(user.id);
+      if (details) {
+        setEditForm({
+          firstName: details.firstName,
+          lastName: details.lastName,
+          phoneNumber: details.phoneNumber || "",
+          profileImageUrl: details.profileImageUrl || "",
+          address: details.address || "",
+          city: details.city || "",
+          state: details.state || "",
+          country: details.country || "",
+          zipCode: details.zipCode || "",
+          themeColor: details.themeColor || "default"
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to load user details");
+      setIsEditDialogOpen(false);
+    } finally {
+      setIsFetchingUserDetails(false);
+    }
   };
 
   const handleSaveEdit = async () => {
-    if (!editingUser) return;
+    if (!editingUserId) return;
     try {
       setIsSaving(true);
-      await userService.updateUser(editingUser.id, editForm);
+      await userService.updateUser(editingUserId, editForm);
       toast.success("User updated successfully");
       setIsEditDialogOpen(false);
       fetchUsers();
@@ -91,6 +124,11 @@ export default function Permissions() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setEditForm(prev => ({ ...prev, [id]: value }));
   };
 
   return (
@@ -214,45 +252,69 @@ export default function Permissions() {
       )}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Admin User</DialogTitle>
             <DialogDescription>
-              Update user information. Roles and permissions are managed elsewhere.
+              Update complete user information.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="firstName" className="text-right text-sm font-medium">First Name</label>
-              <Input
-                id="firstName"
-                value={editForm.firstName}
-                onChange={(e) => setEditForm(prev => ({ ...prev, firstName: e.target.value }))}
-                className="col-span-3"
-              />
+          {isFetchingUserDetails ? (
+            <div className="py-12 flex justify-center items-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="lastName" className="text-right text-sm font-medium">Last Name</label>
-              <Input
-                id="lastName"
-                value={editForm.lastName}
-                onChange={(e) => setEditForm(prev => ({ ...prev, lastName: e.target.value }))}
-                className="col-span-3"
-              />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="grid gap-2">
+                <label htmlFor="firstName" className="text-sm font-medium">First Name</label>
+                <Input id="firstName" value={editForm.firstName} onChange={handleFormChange} />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
+                <Input id="lastName" value={editForm.lastName} onChange={handleFormChange} />
+              </div>
+              
+              <div className="grid gap-2">
+                <label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number</label>
+                <Input id="phoneNumber" value={editForm.phoneNumber} onChange={handleFormChange} />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="profileImageUrl" className="text-sm font-medium">Profile Image URL</label>
+                <Input id="profileImageUrl" value={editForm.profileImageUrl} onChange={handleFormChange} />
+              </div>
+
+              <div className="grid gap-2 col-span-2">
+                <label htmlFor="address" className="text-sm font-medium">Address</label>
+                <Input id="address" value={editForm.address} onChange={handleFormChange} />
+              </div>
+
+              <div className="grid gap-2">
+                <label htmlFor="city" className="text-sm font-medium">City</label>
+                <Input id="city" value={editForm.city} onChange={handleFormChange} />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="state" className="text-sm font-medium">State</label>
+                <Input id="state" value={editForm.state} onChange={handleFormChange} />
+              </div>
+
+              <div className="grid gap-2">
+                <label htmlFor="country" className="text-sm font-medium">Country</label>
+                <Input id="country" value={editForm.country} onChange={handleFormChange} />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="zipCode" className="text-sm font-medium">Zip Code</label>
+                <Input id="zipCode" value={editForm.zipCode} onChange={handleFormChange} />
+              </div>
+
+              <div className="grid gap-2 col-span-2">
+                <label htmlFor="themeColor" className="text-sm font-medium">Theme Color</label>
+                <Input id="themeColor" value={editForm.themeColor} onChange={handleFormChange} />
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="phoneNumber" className="text-right text-sm font-medium">Phone</label>
-              <Input
-                id="phoneNumber"
-                value={editForm.phoneNumber}
-                onChange={(e) => setEditForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                className="col-span-3"
-              />
-            </div>
-          </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={isSaving}>
+            <Button onClick={handleSaveEdit} disabled={isSaving || isFetchingUserDetails}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
             </Button>

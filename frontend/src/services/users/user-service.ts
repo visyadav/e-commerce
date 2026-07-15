@@ -1,5 +1,5 @@
 import { apiClient } from "../api-client";
-import type { AdminUserDto, UpdateAdminUserRequest } from "@/src/types/users";
+import type { AdminUserDto, AdminUserDetailsDto, UpdateAdminUserRequest } from "@/src/types/users";
 
 export const userService = {
   getAllUsers: (searchTerm?: string, pageNumber = 1, pageSize = 10) => {
@@ -9,6 +9,10 @@ export const userService = {
     if (searchTerm) params.append("searchTerm", searchTerm);
     
     return apiClient.getPaginated<AdminUserDto>(`/AdminUser?${params.toString()}`);
+  },
+
+  getUserById: (userId: string) => {
+    return apiClient.get<AdminUserDetailsDto>(`/AdminUser/${userId}`);
   },
 
   toggleUserStatus: (userId: string, isActive: boolean) => {

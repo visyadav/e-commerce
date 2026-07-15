@@ -107,6 +107,52 @@ public class AdminUserService : IAdminUserService
         return ApiResponse.SuccessResponse($"User status updated successfully to {(isActive ? "Active" : "Inactive")}.");
     }
 
+    public async Task<ApiResponse<AdminUserDetailsDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            throw new NotFoundException(nameof(ApplicationUser), userId);
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        
+        var createdByName = "System";
+        if (!string.IsNullOrEmpty(user.CreatedBy))
+        {
+            var creator = await _userManager.FindByIdAsync(user.CreatedBy);
+            if (creator != null)
+            {
+                createdByName = creator.FullName;
+            }
+        }
+
+        var dto = new AdminUserDetailsDto
+        {
+            Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email!,
+            PhoneNumber = user.PhoneNumber,
+            ProfileImageUrl = user.ProfileImageUrl,
+            Address = user.Address,
+            City = user.City,
+            State = user.State,
+            Country = user.Country,
+            ZipCode = user.ZipCode,
+            ThemeColor = user.ThemeColor,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt,
+            LastLoginAt = user.LastLoginAt,
+            IsActive = user.IsActive,
+            Roles = roles,
+            CreatedBy = user.CreatedBy,
+            CreatedByName = createdByName
+        };
+
+        return ApiResponse<AdminUserDetailsDto>.SuccessResponse(dto, "User details retrieved successfully.");
+    }
+
     public async Task<ApiResponse> UpdateUserAsync(string userId, UpdateAdminUserRequest request, string currentUserId, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -119,12 +165,27 @@ public class AdminUserService : IAdminUserService
         {
             FirstName = user.FirstName,
             LastName = user.LastName,
-            PhoneNumber = user.PhoneNumber
+            PhoneNumber = user.PhoneNumber,
+            ProfileImageUrl = user.ProfileImageUrl,
+            Address = user.Address,
+            City = user.City,
+            State = user.State,
+            Country = user.Country,
+            ZipCode = user.ZipCode,
+            ThemeColor = user.ThemeColor
         };
 
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
         user.PhoneNumber = request.PhoneNumber;
+        user.ProfileImageUrl = request.ProfileImageUrl;
+        user.Address = request.Address;
+        user.City = request.City;
+        user.State = request.State;
+        user.Country = request.Country;
+        user.ZipCode = request.ZipCode;
+        user.ThemeColor = request.ThemeColor;
+        user.UpdatedAt = DateTime.UtcNow;
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)

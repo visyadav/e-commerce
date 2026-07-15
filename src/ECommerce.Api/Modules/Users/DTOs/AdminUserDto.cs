@@ -18,6 +18,18 @@ public class AdminUserDto
     public string? CreatedByName { get; set; }
 }
 
+public class AdminUserDetailsDto : AdminUserDto
+{
+    public string? ProfileImageUrl { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? Country { get; set; }
+    public string? ZipCode { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string ThemeColor { get; set; } = "default";
+}
+
 public class ToggleUserStatusRequest
 {
     [Required]
@@ -33,4 +45,11 @@ public class UpdateAdminUserRequest
     public string LastName { get; set; } = string.Empty;
     
     public string? PhoneNumber { get; set; }
+    public string? ProfileImageUrl { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? Country { get; set; }
+    public string? ZipCode { get; set; }
+    public string ThemeColor { get; set; } = "default";
 }
