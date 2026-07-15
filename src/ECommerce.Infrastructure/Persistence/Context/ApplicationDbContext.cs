@@ -31,6 +31,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RoleMenuPermission> RoleMenuPermissions => Set<RoleMenuPermission>();
     public DbSet<UserMenuPermission> UserMenuPermissions => Set<UserMenuPermission>();
     public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
+    public DbSet<UserHistory> UserHistories => Set<UserHistory>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

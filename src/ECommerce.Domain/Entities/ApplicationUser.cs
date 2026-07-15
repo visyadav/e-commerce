@@ -26,6 +26,9 @@ public class ApplicationUser : IdentityUser
     public ICollection<Review> Reviews { get; set; } = [];
     public ICollection<Notification> Notifications { get; set; } = [];
     public ICollection<UserAddress> SavedAddresses { get; set; } = [];
+    public ICollection<UserHistory> History { get; set; } = [];
+
+    public string? CreatedBy { get; set; }
 
     public string FullName => $"{FirstName} {LastName}";
 }

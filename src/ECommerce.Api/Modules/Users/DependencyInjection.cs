@@ -10,6 +10,7 @@ public static class DependencyInjection
     public static IServiceCollection AddUsersModule(this IServiceCollection services)
     {
         services.AddScopedWithLogging<IProfileService, ProfileService>();
+        services.AddScopedWithLogging<IAdminUserService, AdminUserService>();
         return services;
     }
 }
