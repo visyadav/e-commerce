@@ -16,7 +16,7 @@ public class Product : AuditableEntity
     public bool IsActive { get; set; } = true;
     public bool IsFeatured { get; set; }
     public ICollection<ProductImage> Images { get; set; } = [];
-    public string? Tags { get; set; }
+    public ICollection<Tag> Tags { get; set; } = [];
     public double Weight { get; set; }
     public string? Dimensions { get; set; }
     public bool IsDeleted { get; set; } = false;

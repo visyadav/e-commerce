@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ProductDto, CategoryDto, BrandDto } from "@/src/types/catalog";
+import { ProductDto, CategoryDto, BrandDto, TagDto } from "@/src/types/catalog";
 import { PaginationMeta } from "@/src/types/api";
 import { productService } from "@/src/services/catalog/product-service";
 import { categoryService } from "@/src/services/catalog/category-service";
 import { brandService } from "@/src/services/catalog/brand-service";
+import { tagService } from "@/src/services/catalog/tag-service";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import {
@@ -22,6 +23,8 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [brands, setBrands] = useState<BrandDto[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagDto[]>([]);
+  const [tagInputValue, setTagInputValue] = useState("");
   
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
@@ -47,7 +50,7 @@ export default function ProductsPage() {
     isFeatured: false,
     imageFiles: [] as File[],
     imageUrls: [] as string[],
-    tags: "",
+    tags: [] as string[],
     weight: 0,
     dimensions: "",
     categoryId: "",
@@ -71,14 +74,16 @@ export default function ProductsPage() {
 
   const fetchDependencies = async () => {
     try {
-      const [catsRes, brandsRes] = await Promise.all([
+      const [catsRes, brandsRes, tagsRes] = await Promise.all([
         categoryService.getLookup(),
-        brandService.getLookup()
+        brandService.getLookup(),
+        tagService.getLookup()
       ]);
       setCategories(catsRes || []);
       setBrands(brandsRes || []);
+      setAvailableTags(tagsRes || []);
     } catch (error) {
-      console.error("Failed to fetch categories/brands for form dropdowns");
+      console.error("Failed to fetch dependencies for form dropdowns");
     }
   };
 
@@ -103,7 +108,7 @@ export default function ProductsPage() {
       isFeatured: false,
       imageFiles: [],
       imageUrls: [],
-      tags: "",
+      tags: [],
       weight: 0,
       dimensions: "",
       categoryId: categories.length > 0 ? categories[0].id : "",
@@ -128,7 +133,7 @@ export default function ProductsPage() {
       isFeatured: product.isFeatured || false,
       imageFiles: [],
       imageUrls: product.imageUrls || [],
-      tags: product.tags || "",
+      tags: product.tags?.map(t => t.name) || [],
       weight: product.weight || 0,
       dimensions: product.dimensions || "",
       categoryId: product.categoryId,
@@ -150,6 +155,27 @@ export default function ProductsPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setFormData({ ...formData, imageFiles: Array.from(e.target.files) });
+    }
+  };
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const val = tagInputValue.trim();
+      if (val && !formData.tags.includes(val)) {
+        setFormData({ ...formData, tags: [...formData.tags, val] });
+      }
+      setTagInputValue("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData({ ...formData, tags: formData.tags.filter(t => t !== tagToRemove) });
+  };
+
+  const addAvailableTag = (tag: TagDto) => {
+    if (!formData.tags.includes(tag.name)) {
+      setFormData({ ...formData, tags: [...formData.tags, tag.name] });
     }
   };
 
@@ -389,13 +415,43 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 col-span-2">
                 <label className="text-sm font-medium">Tags</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.tags.map(tag => (
+                    <div key={tag} className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">
+                      <span>{tag}</span>
+                      <button type="button" onClick={() => removeTag(tag)} className="text-primary hover:text-primary/70">
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                </div>
                 <Input
-                  value={formData.tags}
-                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="tag1, tag2"
+                  value={tagInputValue}
+                  onChange={(e) => setTagInputValue(e.target.value)}
+                  onKeyDown={handleTagInputKeyDown}
+                  placeholder="Type a tag and press Enter"
                 />
+                
+                {availableTags.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-muted-foreground mb-2">Available Tags:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableTags.map(tag => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => addAvailableTag(tag)}
+                          disabled={formData.tags.includes(tag.name)}
+                          className="text-xs px-2 py-1 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50"
+                        >
+                          {tag.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">

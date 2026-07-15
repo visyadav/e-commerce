@@ -1,3 +1,9 @@
+export interface TagDto {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface BrandDto {
   id: string;
   name: string;
@@ -72,7 +78,7 @@ export interface ProductDto {
   isActive: boolean;
   isFeatured: boolean;
   imageUrls: string[];
-  tags?: string;
+  tags?: TagDto[];
   weight: number;
   dimensions?: string;
   categoryId: string;
@@ -96,7 +102,7 @@ export interface CreateProductRequest {
   isActive: boolean;
   isFeatured: boolean;
   imageFiles?: File[];
-  tags?: string;
+  tags?: string[];
   weight: number;
   dimensions?: string;
   categoryId: string;
@@ -116,7 +122,7 @@ export interface UpdateProductRequest {
   isActive: boolean;
   isFeatured: boolean;
   imageFiles?: File[];
-  tags?: string;
+  tags?: string[];
   weight: number;
   dimensions?: string;
   categoryId: string;

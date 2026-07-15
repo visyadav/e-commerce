@@ -23,6 +23,8 @@ export const productService = {
       if (value !== undefined && value !== null) {
         if (key === 'imageFiles' && Array.isArray(value)) {
           value.forEach((file: File) => formData.append('ImageFiles', file));
+        } else if (key === 'tags' && Array.isArray(value)) {
+          value.forEach((tag: string) => formData.append('Tags', tag));
         } else {
           formData.append(key, value.toString());
         }
@@ -37,6 +39,8 @@ export const productService = {
       if (value !== undefined && value !== null) {
         if (key === 'imageFiles' && Array.isArray(value)) {
           value.forEach((file: File) => formData.append('ImageFiles', file));
+        } else if (key === 'tags' && Array.isArray(value)) {
+          value.forEach((tag: string) => formData.append('Tags', tag));
         } else {
           formData.append(key, value.toString());
         }

@@ -16,7 +16,7 @@ public class CreateProductRequest
     public bool IsActive { get; set; } = true;
     public bool IsFeatured { get; set; }
     public List<IFormFile>? ImageFiles { get; set; }
-    public string? Tags { get; set; }
+    public List<string>? Tags { get; set; }
     public double Weight { get; set; }
     public string? Dimensions { get; set; }
     public Guid CategoryId { get; set; }

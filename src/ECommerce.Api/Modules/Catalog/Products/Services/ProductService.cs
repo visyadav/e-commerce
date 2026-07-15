@@ -31,6 +31,7 @@ public class ProductService : IProductService
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Images)
+            .Include(p => p.Tags)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (product == null)
@@ -57,7 +58,7 @@ public class ProductService : IProductService
         
         // Apply specification filters and sorting
         var filteredQuery = query.ApplySpecification(categoryId, brandId, minPrice, maxPrice, searchTerm, sortBy);
-        filteredQuery = filteredQuery.Include(p => p.Images);
+        filteredQuery = filteredQuery.Include(p => p.Images).Include(p => p.Tags);
 
         // Get total count for pagination metadata
         var totalCount = await filteredQuery.CountAsync(cancellationToken);
@@ -94,6 +95,8 @@ public class ProductService : IProductService
         // Map and save
         var product = _mapper.Map<Product>(request);
         product.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
+        
+        await ProcessTagsAsync(product, request.Tags, cancellationToken);
         
         if (request.ImageFiles != null && request.ImageFiles.Any())
         {
@@ -144,6 +147,7 @@ public class ProductService : IProductService
     {
         var product = await _unitOfWork.Repository<Product>().Query()
             .Include(p => p.Images)
+            .Include(p => p.Tags)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
             
         if (product == null)
@@ -171,6 +175,8 @@ public class ProductService : IProductService
         // Map updates to existing entity
         _mapper.Map(request, product);
         product.Slug = string.IsNullOrWhiteSpace(request.Slug) ? SlugGenerator.Generate(request.Name) : request.Slug;
+
+        await ProcessTagsAsync(product, request.Tags, cancellationToken);
 
         if (request.ImageFiles != null && request.ImageFiles.Any())
         {
@@ -233,5 +239,48 @@ public class ProductService : IProductService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ApiResponse.SuccessResponse("Product deleted successfully.");
+    }
+
+    private async Task ProcessTagsAsync(Product product, List<string>? requestedTags, CancellationToken cancellationToken)
+    {
+        // Remove tags if null or empty list is provided
+        if (requestedTags == null || !requestedTags.Any())
+        {
+            product.Tags.Clear();
+            return;
+        }
+
+        // Clear existing tags to replace with the new list
+        product.Tags.Clear();
+
+        // Get existing tags from DB (case insensitive)
+        var existingTags = await _unitOfWork.Repository<Tag>().Query()
+            .Where(t => requestedTags.Contains(t.Name))
+            .ToListAsync(cancellationToken);
+
+        var existingTagNames = existingTags.Select(t => t.Name.ToLowerInvariant()).ToHashSet();
+
+        foreach (var tagName in requestedTags)
+        {
+            if (string.IsNullOrWhiteSpace(tagName)) continue;
+
+            var nameLower = tagName.Trim().ToLowerInvariant();
+            var existingTag = existingTags.FirstOrDefault(t => t.Name.ToLowerInvariant() == nameLower);
+
+            if (existingTag != null)
+            {
+                product.Tags.Add(existingTag);
+            }
+            else if (!existingTagNames.Contains(nameLower))
+            {
+                var newTag = new Tag
+                {
+                    Name = tagName.Trim(),
+                    Slug = SlugGenerator.Generate(tagName.Trim())
+                };
+                product.Tags.Add(newTag);
+                existingTagNames.Add(nameLower); // prevent duplicates in the same request
+            }
+        }
     }
 }

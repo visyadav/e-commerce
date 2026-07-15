@@ -1,3 +1,4 @@
+using ECommerce.Api.Modules.Catalog.Tags;
 using ECommerce.Api.Extensions;
 using ECommerce.Infrastructure;
 using ECommerce.Api.Configurations;
@@ -36,6 +37,7 @@ builder.Services.AddApiServices(builder.Configuration);
 builder.Services.AddAuthenticationModule();
 builder.Services.AddNavigationModule();
 builder.Services.AddProductsModule();
+builder.Services.AddTagsModule();
 
 // Stubs for future modules to preserve compilation & structural integrity
 builder.Services.AddUsersModule();

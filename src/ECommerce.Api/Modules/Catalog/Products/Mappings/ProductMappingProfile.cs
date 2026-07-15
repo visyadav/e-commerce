@@ -15,9 +15,11 @@ public class ProductMappingProfile : Profile
             .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src => src.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).ToList()));
 
         CreateMap<CreateProductRequest, Product>()
-            .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => SlugGenerator.Generate(src.Name)));
+            .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => SlugGenerator.Generate(src.Name)))
+            .ForMember(dest => dest.Tags, opt => opt.Ignore());
 
         CreateMap<UpdateProductRequest, Product>()
-            .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => SlugGenerator.Generate(src.Name)));
+            .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => SlugGenerator.Generate(src.Name)))
+            .ForMember(dest => dest.Tags, opt => opt.Ignore());
     }
 }

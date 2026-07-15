@@ -41,8 +41,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Description)
             .HasMaxLength(4000);
 
-        builder.Property(p => p.Tags)
-            .HasMaxLength(1000);
+        builder.HasMany(p => p.Tags)
+            .WithMany(t => t.Products)
+            .UsingEntity("ProductTags");
 
         builder.HasOne(p => p.Category)
             .WithMany(c => c.Products)

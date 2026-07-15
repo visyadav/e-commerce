@@ -1,3 +1,5 @@
+using ECommerce.Api.Modules.Catalog.Tags.DTOs;
+
 namespace ECommerce.Api.Modules.Catalog.Products.DTOs;
 
 public class ProductDto
@@ -15,7 +17,7 @@ public class ProductDto
     public bool IsActive { get; set; }
     public bool IsFeatured { get; set; }
     public List<string> ImageUrls { get; set; } = [];
-    public string? Tags { get; set; }
+    public List<TagDto> Tags { get; set; } = [];
     public double Weight { get; set; }
     public string? Dimensions { get; set; }
     
