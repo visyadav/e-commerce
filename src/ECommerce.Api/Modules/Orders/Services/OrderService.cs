@@ -232,4 +232,47 @@ public class OrderService : IOrderService
         var dtos = _mapper.Map<List<OrderDto>>(items);
         return PagedResponse<OrderDto>.Create(dtos, pageNumber, pageSize, totalCount, "Customer orders retrieved successfully.");
     }
+
+    public async Task<PagedResponse<OrderDto>> GetAllOrdersAsync(string? searchTerm, string? status, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _unitOfWork.Repository<Order>().Query()
+            .Include(o => o.Items)
+            .Include(o => o.User)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(o => o.OrderNumber.Contains(searchTerm) || o.User.Email.Contains(searchTerm));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<OrderStatus>(status, true, out var parsedStatus))
+        {
+            query = query.Where(o => o.Status == parsedStatus);
+        }
+
+        query = query.OrderByDescending(o => o.CreatedAt);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query.Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var dtos = _mapper.Map<List<OrderDto>>(items);
+        return PagedResponse<OrderDto>.Create(dtos, pageNumber, pageSize, totalCount, "All orders retrieved successfully.");
+    }
+
+    public async Task<ApiResponse> UpdateOrderStatusAsync(Guid orderId, OrderStatus status, CancellationToken cancellationToken = default)
+    {
+        var order = await _unitOfWork.Repository<Order>().GetByIdAsync(orderId, cancellationToken);
+        if (order == null)
+        {
+            throw new NotFoundException(nameof(Order), orderId);
+        }
+
+        order.Status = status;
+        _unitOfWork.Repository<Order>().Update(order);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ApiResponse.SuccessResponse($"Order status updated to {status}.");
+    }
 }

@@ -68,3 +68,9 @@ public class OrderDto
     public DateTime CreatedAt { get; set; }
     public List<OrderItemDto> Items { get; set; } = [];
 }
+
+public class UpdateOrderStatusRequest
+{
+    [Required]
+    public ECommerce.Domain.Enums.OrderStatus Status { get; set; }
+}
