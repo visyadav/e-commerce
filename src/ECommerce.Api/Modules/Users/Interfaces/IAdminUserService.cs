@@ -9,4 +9,5 @@ public interface IAdminUserService
     Task<ApiResponse<AdminUserDetailsDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default);
     Task<ApiResponse> ToggleUserStatusAsync(string userId, bool isActive, string currentUserId, CancellationToken cancellationToken = default);
     Task<ApiResponse> UpdateUserAsync(string userId, UpdateAdminUserRequest request, string currentUserId, CancellationToken cancellationToken = default);
+    Task<ApiResponse> CreateUserAsync(CreateAdminUserRequest request, string currentUserId, CancellationToken cancellationToken = default);
 }

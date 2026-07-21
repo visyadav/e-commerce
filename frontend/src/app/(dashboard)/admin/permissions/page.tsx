@@ -24,6 +24,16 @@ export default function Permissions() {
 
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  // Create user state
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    role: "Admin"
+  });
+
   // Edit user state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -79,6 +89,21 @@ export default function Permissions() {
       toast.error("Failed to update user status");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleCreateSubmit = async () => {
+    try {
+      setIsCreating(true);
+      await userService.createUser(createForm);
+      toast.success("User created successfully");
+      setIsCreateDialogOpen(false);
+      setCreateForm({ firstName: "", lastName: "", email: "", role: "Admin" });
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to create user");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -141,15 +166,17 @@ export default function Permissions() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="w-full sm:w-96">
+        <div className="w-full sm:w-96 flex gap-2">
           <Input
-            placeholder="Search by name or email..."
+            placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
+            className="w-[300px]"
           />
+          <Button onClick={() => setIsCreateDialogOpen(true)}>Add User</Button>
         </div>
       </div>
 
@@ -317,6 +344,64 @@ export default function Permissions() {
             <Button onClick={handleSaveEdit} disabled={isSaving || isFetchingUserDetails}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Create Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add User</DialogTitle>
+            <DialogDescription>
+              Create a new user. The default password will be automatically generated (first 3 letters of first name + @ethical.in).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="createFirstName" className="text-sm font-medium">First Name</label>
+              <Input
+                id="createFirstName"
+                value={createForm.firstName}
+                onChange={(e) => setCreateForm({ ...createForm, firstName: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="createLastName" className="text-sm font-medium">Last Name</label>
+              <Input
+                id="createLastName"
+                value={createForm.lastName}
+                onChange={(e) => setCreateForm({ ...createForm, lastName: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="createEmail" className="text-sm font-medium">Email</label>
+              <Input
+                id="createEmail"
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="createRole" className="text-sm font-medium">Role</label>
+              <select
+                id="createRole"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={createForm.role}
+                onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
+              >
+                <option value="SuperAdmin">SuperAdmin</option>
+                <option value="Admin">Admin</option>
+                <option value="Customer">Customer</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateSubmit} disabled={isCreating || !createForm.firstName || !createForm.lastName || !createForm.email}>
+              {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Create
             </Button>
           </DialogFooter>
         </DialogContent>

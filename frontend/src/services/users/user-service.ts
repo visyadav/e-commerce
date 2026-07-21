@@ -1,5 +1,5 @@
 import { apiClient } from "../api-client";
-import type { AdminUserDto, AdminUserDetailsDto, UpdateAdminUserRequest } from "@/src/types/users";
+import type { AdminUserDto, AdminUserDetailsDto, UpdateAdminUserRequest, CreateAdminUserRequest } from "@/src/types/users";
 
 export const userService = {
   getAllUsers: (searchTerm?: string, pageNumber = 1, pageSize = 10) => {
@@ -13,6 +13,10 @@ export const userService = {
 
   getUserById: (userId: string) => {
     return apiClient.get<AdminUserDetailsDto>(`/AdminUser/${userId}`);
+  },
+
+  createUser: (data: CreateAdminUserRequest) => {
+    return apiClient.post<void>("/AdminUser", data);
   },
 
   toggleUserStatus: (userId: string, isActive: boolean) => {

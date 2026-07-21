@@ -206,4 +206,53 @@ public class AdminUserService : IAdminUserService
 
         return ApiResponse.SuccessResponse("User updated successfully.");
     }
+
+    public async Task<ApiResponse> CreateUserAsync(CreateAdminUserRequest request, string currentUserId, CancellationToken cancellationToken = default)
+    {
+        var existingUser = await _userManager.FindByEmailAsync(request.Email);
+        if (existingUser != null)
+        {
+            throw new BadRequestException("User with this email already exists.");
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            EmailConfirmed = true,
+            IsActive = true,
+            CreatedBy = currentUserId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        //var password = $"{request.FirstName.Substring(0, Math.Min(3, request.FirstName.Length))}@ethical.in";
+        var password = $"Admin@123456";
+        var result = await _userManager.CreateAsync(user, password);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            throw new BadRequestException($"Failed to create user: {errors}");
+        }
+
+        var roleResult = await _userManager.AddToRoleAsync(user, request.Role);
+        if (!roleResult.Succeeded)
+        {
+            var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+            throw new BadRequestException($"Failed to assign role: {errors}");
+        }
+
+        var history = new UserHistory
+        {
+            UserId = user.Id,
+            Action = "Created",
+            ChangedByUserId = currentUserId,
+            Changes = JsonSerializer.Serialize(new { New = request })
+        };
+        _dbContext.UserHistories.Add(history);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ApiResponse.SuccessResponse("User created successfully.");
+    }
 }

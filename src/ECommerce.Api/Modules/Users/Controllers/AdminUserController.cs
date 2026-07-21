@@ -60,4 +60,14 @@ public class AdminUserController : BaseApiController
         var response = await _adminUserService.GetUserByIdAsync(id, cancellationToken);
         return Ok(response);
     }
+
+    [HttpPost]
+    [HasPermission("Users", "Create")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateUser([FromBody] CreateAdminUserRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _adminUserService.CreateUserAsync(request, CurrentUserId ?? "System", cancellationToken);
+        return Ok(response);
+    }
 }

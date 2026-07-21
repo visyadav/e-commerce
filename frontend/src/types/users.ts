@@ -36,3 +36,10 @@ export interface UpdateAdminUserRequest {
   zipCode?: string;
   themeColor?: string;
 }
+
+export interface CreateAdminUserRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
