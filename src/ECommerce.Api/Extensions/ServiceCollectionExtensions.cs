@@ -9,6 +9,7 @@ using ECommerce.Api.Modules.Catalog.Brands;
 using ECommerce.Api.Modules.Catalog.Categories;
 using ECommerce.Api.Modules.Catalog.Products;
 using ECommerce.Api.Modules.Catalog.Tags;
+using ECommerce.Api.Modules.ClientApp;
 using ECommerce.Api.Modules.Coupons;
 using ECommerce.Api.Modules.Dashboard;
 using ECommerce.Api.Modules.Inventory;
@@ -75,6 +76,7 @@ public static class ServiceCollectionExtensions
         services.AddDashboardModule();
         services.AddAdminModule();
         services.AddNavigationModule();
+        services.AddClientApp();
 
         return services;
     }

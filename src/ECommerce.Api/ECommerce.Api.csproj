@@ -23,4 +23,12 @@
     <ProjectReference Include="..\ECommerce.Shared\ECommerce.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Modules\ClientApp\Controllers\" />
+    <Folder Include="Modules\ClientApp\DTOs\" />
+    <Folder Include="Modules\ClientApp\Interfaces\" />
+    <Folder Include="Modules\ClientApp\Mappings\" />
+    <Folder Include="Modules\ClientApp\Services\" />
+  </ItemGroup>
+
 </Project>

@@ -1,0 +1,32 @@
+export const Colors = {
+  light: {
+    primary: '#E65100', // CookSafari Orange
+    primaryDark: '#BF360C',
+    accent: '#FF9800',
+    background: '#F8F9FA',
+    cardBackground: '#FFFFFF',
+    text: '#212121',
+    textSecondary: '#757575',
+    textMuted: '#BDBDBD',
+    border: '#E0E0E0',
+    success: '#2E7D32',
+    error: '#D32F2F',
+    warning: '#ED6C02',
+    badge: '#FF6D00',
+  },
+  dark: {
+    primary: '#FF7043',
+    primaryDark: '#E65100',
+    accent: '#FFA726',
+    background: '#121212',
+    cardBackground: '#1E1E1E',
+    text: '#FFFFFF',
+    textSecondary: '#B0BEC5',
+    textMuted: '#607D8B',
+    border: '#37474F',
+    success: '#4CAF50',
+    error: '#EF5350',
+    warning: '#FF9800',
+    badge: '#FF7043',
+  },
+};
