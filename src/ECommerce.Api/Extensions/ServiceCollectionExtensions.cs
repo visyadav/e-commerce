@@ -2,6 +2,23 @@ using System.Reflection;
 using ECommerce.Api.Configurations;
 using ECommerce.Api.Filters;
 using FluentValidation;
+using ECommerce.Api.Modules.Admin;
+using ECommerce.Api.Modules.Authentication;
+using ECommerce.Api.Modules.Cart;
+using ECommerce.Api.Modules.Catalog.Brands;
+using ECommerce.Api.Modules.Catalog.Categories;
+using ECommerce.Api.Modules.Catalog.Products;
+using ECommerce.Api.Modules.Catalog.Tags;
+using ECommerce.Api.Modules.Coupons;
+using ECommerce.Api.Modules.Dashboard;
+using ECommerce.Api.Modules.Inventory;
+using ECommerce.Api.Modules.Navigation;
+using ECommerce.Api.Modules.Notifications;
+using ECommerce.Api.Modules.Orders;
+using ECommerce.Api.Modules.Payments;
+using ECommerce.Api.Modules.Reviews;
+using ECommerce.Api.Modules.Users;
+using ECommerce.Api.Modules.Wishlist;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -39,6 +56,25 @@ public static class ServiceCollectionExtensions
 
         // 8. HttpContextAccessor for CurrentUserService
         services.AddHttpContextAccessor();
+
+        // 9. Register Application Feature Modules
+        services.AddAuthenticationModule();
+        services.AddUsersModule();
+        services.AddProductsModule();
+        services.AddCategoriesModule();
+        services.AddBrandsModule();
+        services.AddTagsModule();
+        services.AddCartModule();
+        services.AddOrdersModule();
+        services.AddPaymentsModule();
+        services.AddInventoryModule();
+        services.AddCouponsModule();
+        services.AddWishlistModule();
+        services.AddReviewsModule();
+        services.AddNotificationsModule();
+        services.AddDashboardModule();
+        services.AddAdminModule();
+        services.AddNavigationModule();
 
         return services;
     }

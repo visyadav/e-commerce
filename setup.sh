@@ -8,12 +8,12 @@ echo "dotnet version: $(dotnet --version)"
 dotnet new sln -n ECommerce --force
 
 # Create projects
-dotnet new webapi -n ECommerce.Api -o src/ECommerce.Api --use-controllers
-dotnet new classlib -n ECommerce.Domain -o src/ECommerce.Domain
-dotnet new classlib -n ECommerce.Infrastructure -o src/ECommerce.Infrastructure
-dotnet new classlib -n ECommerce.Shared -o src/ECommerce.Shared
-dotnet new xunit -n ECommerce.UnitTests -o tests/ECommerce.UnitTests
-dotnet new xunit -n ECommerce.IntegrationTests -o tests/ECommerce.IntegrationTests
+dotnet new webapi -n ECommerce.Api -o src/ECommerce.Api --use-controllers --force
+dotnet new classlib -n ECommerce.Domain -o src/ECommerce.Domain --force
+dotnet new classlib -n ECommerce.Infrastructure -o src/ECommerce.Infrastructure --force
+dotnet new classlib -n ECommerce.Shared -o src/ECommerce.Shared --force
+dotnet new xunit -n ECommerce.UnitTests -o tests/ECommerce.UnitTests --force
+dotnet new xunit -n ECommerce.IntegrationTests -o tests/ECommerce.IntegrationTests --force
 
 # Add to solution
 dotnet sln add src/ECommerce.Api/ECommerce.Api.csproj
@@ -57,6 +57,7 @@ dotnet add src/ECommerce.Api package AutoMapper
 dotnet add src/ECommerce.Domain package Microsoft.Extensions.Identity.Stores
 
 # Infrastructure packages
+dotnet add src/ECommerce.Infrastructure package Microsoft.AspNetCore.Authentication.JwtBearer
 dotnet add src/ECommerce.Infrastructure package Microsoft.EntityFrameworkCore
 dotnet add src/ECommerce.Infrastructure package Npgsql.EntityFrameworkCore.PostgreSQL
 dotnet add src/ECommerce.Infrastructure package Microsoft.EntityFrameworkCore.SqlServer

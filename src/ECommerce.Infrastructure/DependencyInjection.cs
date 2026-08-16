@@ -61,6 +61,20 @@ public static class DependencyInjection
         // 3. JWT Settings & Configuration
         var jwtSettings = new JwtSettings();
         configuration.GetSection("JwtSettings").Bind(jwtSettings);
+
+        if (string.IsNullOrWhiteSpace(jwtSettings.Secret))
+        {
+            jwtSettings.Secret = "SuperSecretKey_MustBeAtLeast32BytesLong_ECommerce2026!";
+        }
+        if (string.IsNullOrWhiteSpace(jwtSettings.Issuer))
+        {
+            jwtSettings.Issuer = "ECommerceApi";
+        }
+        if (string.IsNullOrWhiteSpace(jwtSettings.Audience))
+        {
+            jwtSettings.Audience = "ECommerceClient";
+        }
+
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
 
         services.AddAuthentication(options =>

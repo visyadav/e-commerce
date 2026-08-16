@@ -6,6 +6,7 @@ using ECommerce.Infrastructure.Persistence.Context;
 using ECommerce.Infrastructure.Persistence.Repositories;
 using ECommerce.Shared.Exceptions;
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -15,9 +16,13 @@ namespace ECommerce.UnitTests;
 public class ProductServiceTests
 {
     private readonly IMapper _mapper;
+    private readonly IWebHostEnvironment _env;
 
     public ProductServiceTests()
     {
+        var envMock = new Mock<IWebHostEnvironment>();
+        _env = envMock.Object;
+
         var mapperMock = new Mock<IMapper>();
         mapperMock.Setup(m => m.Map<ProductDto>(It.IsAny<Product>()))
             .Returns((object src) =>
@@ -55,7 +60,7 @@ public class ProductServiceTests
         // Arrange
         using var context = CreateDbContext();
         var unitOfWork = new UnitOfWork(context);
-        var productService = new ProductService(unitOfWork, _mapper);
+        var productService = new ProductService(unitOfWork, _mapper, _env);
         var nonExistentId = Guid.NewGuid();
 
         // Act
@@ -88,7 +93,7 @@ public class ProductServiceTests
         await context.SaveChangesAsync();
 
         var unitOfWork = new UnitOfWork(context);
-        var productService = new ProductService(unitOfWork, _mapper);
+        var productService = new ProductService(unitOfWork, _mapper, _env);
 
         // Act
         var response = await productService.GetByIdAsync(product.Id);

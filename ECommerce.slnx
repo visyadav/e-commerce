@@ -1,4 +1,5 @@
 <Solution>
+  <Folder Name="/cooksafari_app/" />
   <Folder Name="/src/">
     <Project Path="src/ECommerce.Api/ECommerce.Api.csproj" />
     <Project Path="src/ECommerce.Domain/ECommerce.Domain.csproj" />

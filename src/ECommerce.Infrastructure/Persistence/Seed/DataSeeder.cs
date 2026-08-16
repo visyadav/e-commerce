@@ -30,6 +30,7 @@ public class DataSeeder
     {
         try
         {
+            await _context.Database.EnsureCreatedAsync();
             await SeedRolesAsync();
             await SeedAdminUserAsync();
             await SeedCategoriesAsync();
