@@ -6,8 +6,6 @@ public interface IServiceableAreaService
 {
     Task<IEnumerable<ServiceableAreaDto>> GetAllAreasAsync();
     Task<ServiceableAreaDto?> GetAreaByIdAsync(Guid id);
-    Task<ServiceableAreaDto> CreateAreaAsync(CreateServiceableAreaRequest request);
-    Task<ServiceableAreaDto?> UpdateAreaAsync(Guid id, UpdateServiceableAreaRequest request);
-    Task<bool> DeleteAreaAsync(Guid id);
+    Task<ServiceableAreaDto> SaveAreaAsync(CreateServiceableAreaRequest request, Guid? id = null);
     Task<ServiceabilityResultDto> CheckServiceabilityAsync(CheckServiceabilityRequest request);
 }

@@ -35,7 +35,7 @@ namespace ECommerce.Infrastructure.Migrations
             migrationBuilder.InsertData(
                 table: "ServiceableAreas",
                 columns: new[] { "Id", "City", "CreatedAt", "CutoffTime", "IsActive", "Latitude", "Longitude", "Name", "Pincode", "RadiusInKm", "State" },
-                values: new object[] { new Guid("7a9f4c3b-2e8d-4f1a-9b5c-3d7e1f4a8b2c"), "Noida", new DateTime(2026, 8, 17, 6, 23, 24, 408, DateTimeKind.Utc).AddTicks(3960), new TimeSpan(0, 23, 59, 0, 0), true, 28.628, 77.364900000000006, "Sector 62 Hub - Noida", "201309", 5.0, "Uttar Pradesh" });
+                values: new object[] { new Guid("7a9f4c3b-2e8d-4f1a-9b5c-3d7e1f4a8b2c"), "Noida", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new TimeSpan(0, 23, 59, 0, 0), true, 28.628, 77.364900000000006, "Sector 62 Hub - Noida", "201309", 5.0, "Uttar Pradesh" });
         }
 
         /// <inheritdoc />

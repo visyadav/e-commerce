@@ -963,7 +963,7 @@ namespace ECommerce.Infrastructure.Migrations
                         {
                             Id = new Guid("7a9f4c3b-2e8d-4f1a-9b5c-3d7e1f4a8b2c"),
                             City = "Noida",
-                            CreatedAt = new DateTime(2026, 8, 17, 6, 23, 24, 408, DateTimeKind.Utc).AddTicks(3960),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CutoffTime = new TimeSpan(0, 23, 59, 0, 0),
                             IsActive = true,
                             Latitude = 28.628,

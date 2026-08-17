@@ -55,7 +55,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 RadiusInKm = 5.0,
                 IsActive = true,
                 CutoffTime = new TimeSpan(23, 59, 0),
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
 

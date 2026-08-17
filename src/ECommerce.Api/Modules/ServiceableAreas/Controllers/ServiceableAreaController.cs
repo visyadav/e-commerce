@@ -8,15 +8,22 @@ namespace ECommerce.Api.Modules.ServiceableAreas.Controllers;
 
 [ApiController]
 [Route("api/v1")]
-public class ServiceableAreaController(IServiceableAreaService service) : ControllerBase
+public class ServiceableAreaController : ControllerBase
 {
-    // --- Admin Endpoints ---
+    private readonly IServiceableAreaService _service;
+
+    public ServiceableAreaController(IServiceableAreaService service)
+    {
+        _service = service;
+    }
+
+    // --- Admin Endpoints (GET and POST Only) ---
 
     [HttpGet("admin/serviceable-areas")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<IEnumerable<ServiceableAreaDto>>>> GetAllAdminAreas()
     {
-        var areas = await service.GetAllAreasAsync();
+        var areas = await _service.GetAllAreasAsync();
         return Ok(ApiResponse<IEnumerable<ServiceableAreaDto>>.SuccessResponse(areas, "Serviceable areas fetched successfully"));
     }
 
@@ -24,7 +31,7 @@ public class ServiceableAreaController(IServiceableAreaService service) : Contro
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<ServiceableAreaDto>>> GetAreaById(Guid id)
     {
-        var area = await service.GetAreaByIdAsync(id);
+        var area = await _service.GetAreaByIdAsync(id);
         if (area == null)
             return NotFound(ApiResponse<ServiceableAreaDto>.FailureResponse("Serviceable area not found"));
 
@@ -33,40 +40,18 @@ public class ServiceableAreaController(IServiceableAreaService service) : Contro
 
     [HttpPost("admin/serviceable-areas")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<ApiResponse<ServiceableAreaDto>>> CreateArea([FromBody] CreateServiceableAreaRequest request)
+    public async Task<ActionResult<ApiResponse<ServiceableAreaDto>>> SaveArea([FromBody] CreateServiceableAreaRequest request, [FromQuery] Guid? id = null)
     {
-        var area = await service.CreateAreaAsync(request);
-        return CreatedAtAction(nameof(GetAreaById), new { id = area.Id }, ApiResponse<ServiceableAreaDto>.SuccessResponse(area, "Serviceable area created successfully"));
+        var area = await _service.SaveAreaAsync(request, id);
+        return Ok(ApiResponse<ServiceableAreaDto>.SuccessResponse(area, "Serviceable area saved successfully"));
     }
 
-    [HttpPut("admin/serviceable-areas/{id:guid}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<ApiResponse<ServiceableAreaDto>>> UpdateArea(Guid id, [FromBody] UpdateServiceableAreaRequest request)
-    {
-        var area = await service.UpdateAreaAsync(id, request);
-        if (area == null)
-            return NotFound(ApiResponse<ServiceableAreaDto>.FailureResponse("Serviceable area not found"));
-
-        return Ok(ApiResponse<ServiceableAreaDto>.SuccessResponse(area, "Serviceable area updated successfully"));
-    }
-
-    [HttpDelete("admin/serviceable-areas/{id:guid}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<ApiResponse<bool>>> DeleteArea(Guid id)
-    {
-        var success = await service.DeleteAreaAsync(id);
-        if (!success)
-            return NotFound(ApiResponse<bool>.FailureResponse("Serviceable area not found"));
-
-        return Ok(ApiResponse<bool>.SuccessResponse(true, "Serviceable area deleted successfully"));
-    }
-
-    // --- Client / Mobile App Endpoints ---
+    // --- Client / Mobile App Endpoints (GET and POST Only) ---
 
     [HttpGet("client/serviceable-areas")]
     public async Task<ActionResult<ApiResponse<IEnumerable<ServiceableAreaDto>>>> GetClientAreas()
     {
-        var areas = await service.GetAllAreasAsync();
+        var areas = await _service.GetAllAreasAsync();
         var activeAreas = areas.Where(a => a.IsActive);
         return Ok(ApiResponse<IEnumerable<ServiceableAreaDto>>.SuccessResponse(activeAreas));
     }
@@ -74,7 +59,7 @@ public class ServiceableAreaController(IServiceableAreaService service) : Contro
     [HttpPost("client/serviceable-areas/check")]
     public async Task<ActionResult<ApiResponse<ServiceabilityResultDto>>> CheckServiceability([FromBody] CheckServiceabilityRequest request)
     {
-        var result = await service.CheckServiceabilityAsync(request);
+        var result = await _service.CheckServiceabilityAsync(request);
         return Ok(ApiResponse<ServiceabilityResultDto>.SuccessResponse(result));
     }
 }

@@ -7,42 +7,29 @@ using Microsoft.Extensions.Logging;
 
 namespace ECommerce.Infrastructure.Persistence.Seed;
 
-public class DataSeeder
+public class DataSeeder(
+    ApplicationDbContext context,
+    UserManager<ApplicationUser> userManager,
+    RoleManager<IdentityRole> roleManager,
+    ILogger<DataSeeder> logger)
 {
-    private readonly ApplicationDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly ILogger<DataSeeder> _logger;
-
-    public DataSeeder(
-        ApplicationDbContext context,
-        UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole> roleManager,
-        ILogger<DataSeeder> logger)
-    {
-        _context = context;
-        _userManager = userManager;
-        _roleManager = roleManager;
-        _logger = logger;
-    }
-
     public async Task SeedAsync()
     {
         try
         {
-            await _context.Database.MigrateAsync();
+            await context.Database.MigrateAsync();
             await SeedRolesAsync();
             await SeedAdminUserAsync();
             await SeedCategoriesAsync();
             await SeedBrandsAsync();
             await SeedMenuItemsAsync();
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
-            _logger.LogInformation("Database seeding completed successfully");
+            logger.LogInformation("Database seeding completed successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while seeding the database");
+            logger.LogError(ex, "An error occurred while seeding the database");
             throw;
         }
     }
@@ -53,10 +40,10 @@ public class DataSeeder
 
         foreach (var role in roles)
         {
-            if (!await _roleManager.RoleExistsAsync(role))
+            if (!await roleManager.RoleExistsAsync(role))
             {
-                await _roleManager.CreateAsync(new IdentityRole(role));
-                _logger.LogInformation("Created role: {Role}", role);
+                await roleManager.CreateAsync(new IdentityRole(role));
+                logger.LogInformation("Created role: {Role}", role);
             }
         }
     }
@@ -65,7 +52,7 @@ public class DataSeeder
     {
         const string adminEmail = "admin@ecommerce.com";
 
-        if (await _userManager.FindByEmailAsync(adminEmail) is null)
+        if (await userManager.FindByEmailAsync(adminEmail) is null)
         {
             var admin = new ApplicationUser
             {
@@ -77,18 +64,18 @@ public class DataSeeder
                 IsActive = true
             };
 
-            var result = await _userManager.CreateAsync(admin, "Admin@123456");
+            var result = await userManager.CreateAsync(admin, "Admin@123456");
             if (result.Succeeded)
             {
-                await _userManager.AddToRolesAsync(admin, [AppConstants.Roles.SuperAdmin, AppConstants.Roles.Admin]);
-                _logger.LogInformation("Seeded admin user: {Email}", adminEmail);
+                await userManager.AddToRolesAsync(admin, [AppConstants.Roles.SuperAdmin, AppConstants.Roles.Admin]);
+                logger.LogInformation("Seeded admin user: {Email}", adminEmail);
             }
         }
     }
 
     private async Task SeedCategoriesAsync()
     {
-        if (await _context.Categories.AnyAsync())
+        if (await context.Categories.AnyAsync())
             return;
 
         var categories = new List<Category>
@@ -100,13 +87,13 @@ public class DataSeeder
             new() { Name = "Books", Slug = "books", SortOrder = 5 }
         };
 
-        await _context.Categories.AddRangeAsync(categories);
-        _logger.LogInformation("Seeded {Count} categories", categories.Count);
+        await context.Categories.AddRangeAsync(categories);
+        logger.LogInformation("Seeded {Count} categories", categories.Count);
     }
 
     private async Task SeedBrandsAsync()
     {
-        if (await _context.Brands.AnyAsync())
+        if (await context.Brands.AnyAsync())
             return;
 
         var brands = new List<Brand>
@@ -116,15 +103,15 @@ public class DataSeeder
             new() { Name = "HomeComfort", Slug = "homecomfort" }
         };
 
-        await _context.Brands.AddRangeAsync(brands);
-        _logger.LogInformation("Seeded {Count} brands", brands.Count);
+        await context.Brands.AddRangeAsync(brands);
+        logger.LogInformation("Seeded {Count} brands", brands.Count);
     }
 
     private async Task SeedMenuItemsAsync()
     {
-        if (await _context.MenuItems.AnyAsync())
+        if (await context.MenuItems.AnyAsync())
         {
-            var hasUserManagement = await _context.MenuItems.AnyAsync(m => m.Title == "User Management");
+            var hasUserManagement = await context.MenuItems.AnyAsync(m => m.Title == "User Management");
             if (!hasUserManagement)
             {
                 var userManagementMenu = new MenuItem
@@ -136,12 +123,12 @@ public class DataSeeder
                     Module = "Admin",
                     AllowedRoles = $"{AppConstants.Roles.SuperAdmin}"
                 };
-                await _context.MenuItems.AddAsync(userManagementMenu);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Seeded missing 'User Management' menu item");
+                await context.MenuItems.AddAsync(userManagementMenu);
+                await context.SaveChangesAsync();
+                logger.LogInformation("Seeded missing 'User Management' menu item");
             }
 
-            var hasServiceableAreas = await _context.MenuItems.AnyAsync(m => m.Title == "Serviceable Areas");
+            var hasServiceableAreas = await context.MenuItems.AnyAsync(m => m.Title == "Serviceable Areas");
             if (!hasServiceableAreas)
             {
                 var serviceableAreasMenu = new MenuItem
@@ -153,9 +140,9 @@ public class DataSeeder
                     Module = "ServiceableArea",
                     AllowedRoles = $"{AppConstants.Roles.SuperAdmin},{AppConstants.Roles.Admin}"
                 };
-                await _context.MenuItems.AddAsync(serviceableAreasMenu);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Seeded missing 'Serviceable Areas' menu item");
+                await context.MenuItems.AddAsync(serviceableAreasMenu);
+                await context.SaveChangesAsync();
+                logger.LogInformation("Seeded missing 'Serviceable Areas' menu item");
             }
 
             return;
@@ -361,9 +348,9 @@ public class DataSeeder
             myAccount, myOrders, myWishlist, myCart, myReviews, customerNotifications
         };
 
-        await _context.MenuItems.AddRangeAsync(adminMenuItems);
-        await _context.MenuItems.AddRangeAsync(customerMenuItems);
+        await context.MenuItems.AddRangeAsync(adminMenuItems);
+        await context.MenuItems.AddRangeAsync(customerMenuItems);
 
-        _logger.LogInformation("Seeded menu items for Admin and Customer roles");
+        logger.LogInformation("Seeded menu items for Admin and Customer roles");
     }
 }

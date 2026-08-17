@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   MapPin,
   Plus,
-  Trash2,
+  Pencil,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -32,9 +32,11 @@ export default function ServiceableAreasPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Dialog State
+  // Dialog & Editing State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingArea, setEditingArea] = useState<ServiceableArea | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fetchingId, setFetchingId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<CreateServiceableAreaPayload>({
@@ -64,37 +66,68 @@ export default function ServiceableAreasPage() {
     fetchAreas();
   }, []);
 
+  const handleOpenAdd = () => {
+    setEditingArea(null);
+    setFormData({
+      name: "",
+      city: "Noida",
+      state: "Uttar Pradesh",
+      pincode: "",
+      latitude: 28.6280,
+      longitude: 77.3649,
+      radiusInKm: 5.0,
+      isActive: true,
+    });
+    setIsDialogOpen(true);
+  };
+
+  // Fetch hub details directly from GET API before opening edit dialog
+  const handleOpenEdit = async (areaId: string) => {
+    try {
+      setFetchingId(areaId);
+      const data = await serviceableAreaService.getById(areaId);
+      if (data) {
+        setEditingArea(data);
+        setFormData({
+          name: data.name,
+          city: data.city,
+          state: data.state,
+          pincode: data.pincode,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          radiusInKm: data.radiusInKm,
+          isActive: data.isActive,
+        });
+        setIsDialogOpen(true);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to fetch delivery hub details from API");
+    } finally {
+      setFetchingId(null);
+    }
+  };
+
   const handleToggleActive = async (area: ServiceableArea) => {
     try {
-      await serviceableAreaService.update(area.id, {
-        name: area.name,
-        city: area.city,
-        state: area.state,
-        pincode: area.pincode,
-        latitude: area.latitude,
-        longitude: area.longitude,
-        radiusInKm: area.radiusInKm,
-        isActive: !area.isActive,
-      });
+      await serviceableAreaService.save(
+        {
+          name: area.name,
+          city: area.city,
+          state: area.state,
+          pincode: area.pincode,
+          latitude: area.latitude,
+          longitude: area.longitude,
+          radiusInKm: area.radiusInKm,
+          isActive: !area.isActive,
+        },
+        area.id
+      );
       toast.success(
         `Delivery hub "${area.name}" is now ${!area.isActive ? "Active" : "Disabled"}`
       );
       fetchAreas();
     } catch (err: any) {
       toast.error(err.message || "Failed to update hub status");
-    }
-  };
-
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete delivery hub "${name}"?`)) {
-      return;
-    }
-    try {
-      await serviceableAreaService.delete(id);
-      toast.success(`Deleted delivery hub "${name}"`);
-      fetchAreas();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete delivery hub");
     }
   };
 
@@ -107,22 +140,16 @@ export default function ServiceableAreasPage() {
 
     try {
       setIsSubmitting(true);
-      await serviceableAreaService.create(formData);
-      toast.success(`Created delivery hub "${formData.name}"`);
+      await serviceableAreaService.save(formData, editingArea?.id);
+      toast.success(
+        editingArea
+          ? `Updated delivery hub "${formData.name}"`
+          : `Created delivery hub "${formData.name}"`
+      );
       setIsDialogOpen(false);
-      setFormData({
-        name: "",
-        city: "Noida",
-        state: "Uttar Pradesh",
-        pincode: "",
-        latitude: 28.6280,
-        longitude: 77.3649,
-        radiusInKm: 5.0,
-        isActive: true,
-      });
       fetchAreas();
     } catch (err: any) {
-      toast.error(err.message || "Failed to create delivery hub");
+      toast.error(err.message || "Failed to save delivery hub");
     } finally {
       setIsSubmitting(false);
     }
@@ -145,7 +172,7 @@ export default function ServiceableAreasPage() {
             Manage delivery hubs, geofence radius in kilometers, and active service zones.
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={handleOpenAdd}>
           <Plus className="mr-2 h-4 w-4" /> Add Delivery Hub
         </Button>
       </div>
@@ -232,15 +259,21 @@ export default function ServiceableAreasPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDelete(item.id, item.name)}
-                      title="Delete Delivery Hub"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={fetchingId === item.id}
+                        onClick={() => handleOpenEdit(item.id)}
+                        title="Fetch & Edit Delivery Hub"
+                      >
+                        {fetchingId === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <Pencil className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -249,13 +282,17 @@ export default function ServiceableAreasPage() {
         </table>
       </div>
 
-      {/* Add Hub Dialog */}
+      {/* Add / Edit Hub Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Delivery Hub</DialogTitle>
+            <DialogTitle>
+              {editingArea ? "Edit Delivery Hub" : "Add Delivery Hub"}
+            </DialogTitle>
             <DialogDescription>
-              Configure a new delivery hub center with latitude, longitude, and delivery radius in kilometers.
+              {editingArea
+                ? `Update location details or radius for ${editingArea.name}.`
+                : "Configure a new delivery hub center with latitude, longitude, and delivery radius in kilometers."}
             </DialogDescription>
           </DialogHeader>
 
@@ -334,7 +371,7 @@ export default function ServiceableAreasPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Save Delivery Hub"}
+                {isSubmitting ? "Saving..." : editingArea ? "Update Hub" : "Save Delivery Hub"}
               </Button>
             </div>
           </form>

@@ -27,9 +27,10 @@ export interface CreateServiceableAreaPayload {
 
 export const serviceableAreaService = {
   getAll: () => apiClient.get<ServiceableArea[]>('/admin/serviceable-areas'),
-  create: (payload: CreateServiceableAreaPayload) =>
-    apiClient.post<ServiceableArea>('/admin/serviceable-areas', payload),
-  update: (id: string, payload: CreateServiceableAreaPayload) =>
-    apiClient.put<ServiceableArea>(`/admin/serviceable-areas/${id}`, payload),
-  delete: (id: string) => apiClient.delete<boolean>(`/admin/serviceable-areas/${id}`),
+  getById: (id: string) => apiClient.get<ServiceableArea>(`/admin/serviceable-areas/${id}`),
+  save: (payload: CreateServiceableAreaPayload, id?: string) =>
+    apiClient.post<ServiceableArea>(
+      id ? `/admin/serviceable-areas?id=${id}` : '/admin/serviceable-areas',
+      payload
+    ),
 };

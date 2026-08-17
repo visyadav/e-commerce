@@ -35,37 +35,34 @@ public class ServiceableAreaService : IServiceableAreaService
         return area == null ? null : _mapper.Map<ServiceableAreaDto>(area);
     }
 
-    public async Task<ServiceableAreaDto> CreateAreaAsync(CreateServiceableAreaRequest request)
+    public async Task<ServiceableAreaDto> SaveAreaAsync(CreateServiceableAreaRequest request, Guid? id = null)
     {
-        var area = _mapper.Map<ServiceableArea>(request);
+        ServiceableArea area;
 
-        _db.ServiceableAreas.Add(area);
+        if (id.HasValue && id.Value != Guid.Empty)
+        {
+            var existing = await _db.ServiceableAreas.FindAsync(id.Value);
+            if (existing != null)
+            {
+                _mapper.Map(request, existing);
+                area = existing;
+            }
+            else
+            {
+                area = _mapper.Map<ServiceableArea>(request);
+                area.Id = id.Value;
+                _db.ServiceableAreas.Add(area);
+            }
+        }
+        else
+        {
+            area = _mapper.Map<ServiceableArea>(request);
+            _db.ServiceableAreas.Add(area);
+        }
+
         await _db.SaveChangesAsync();
 
         return _mapper.Map<ServiceableAreaDto>(area);
-    }
-
-    public async Task<ServiceableAreaDto?> UpdateAreaAsync(Guid id, UpdateServiceableAreaRequest request)
-    {
-        var area = await _db.ServiceableAreas.FindAsync(id);
-        if (area == null) return null;
-
-        _mapper.Map(request, area);
-
-        await _db.SaveChangesAsync();
-
-        return _mapper.Map<ServiceableAreaDto>(area);
-    }
-
-    public async Task<bool> DeleteAreaAsync(Guid id)
-    {
-        var area = await _db.ServiceableAreas.FindAsync(id);
-        if (area == null) return false;
-
-        _db.ServiceableAreas.Remove(area);
-        await _db.SaveChangesAsync();
-
-        return true;
     }
 
     public async Task<ServiceabilityResultDto> CheckServiceabilityAsync(CheckServiceabilityRequest request)
@@ -159,7 +156,7 @@ public class ServiceableAreaService : IServiceableAreaService
 
     public static double CalculateDistanceInKm(double lat1, double lon1, double lat2, double lon2)
     {
-        const double r = 6371.0; // Radius of the Earth in km
+        const double r = 6371.0;
         var dLat = ToRadians(lat2 - lat1);
         var dLon = ToRadians(lon2 - lon1);
 
