@@ -10,6 +10,7 @@ public static class DependencyInjection
     public static IServiceCollection AddClientApp(this IServiceCollection services)
     {
         services.AddScopedWithLogging<IClientAddressService, ClientAddressService>();
+        services.AddScopedWithLogging<IClientProductService, ClientProductService>();
         return services;
     }
 }

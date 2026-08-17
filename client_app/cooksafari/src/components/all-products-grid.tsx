@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,48 +7,138 @@ import {
   TouchableOpacity,
   Dimensions,
   TextInput,
+  ActivityIndicator,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { colors, typography, borderRadius, spacing } from '@/theme';
-import { PRODUCTS_DATA, ProductItem } from '@/constants/products';
 import { ProductCard } from '@/components/product-card';
+import { productService, ClientProductDto } from '@/services/api/product-service';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - spacing.lg * 2 - spacing.md) / 2;
 
-const CATEGORIES = [
-  { id: 'All Items', name: 'All Items' },
-  { id: 'Fresh Milk', name: 'Fresh Milk' },
-  { id: 'Paneer & Butter', name: 'Paneer & Butter' },
-  { id: 'Curd & Lassi', name: 'Curd & Dahi' },
-  { id: 'Plant Based', name: 'Plant Based' },
-];
-
 export function AllProductsGrid() {
-  const [selectedCategory, setSelectedCategory] = useState('All Items');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<'relevance' | 'priceLow' | 'priceHigh'>('relevance');
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([
+    { id: 'all', name: 'All Items' },
+  ]);
 
-  // Filter products by category & search query
-  let filtered = PRODUCTS_DATA.filter((product) => {
-    const matchesCategory =
-      selectedCategory === 'All Items' ||
-      product.category.toLowerCase().includes(selectedCategory.toLowerCase());
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const [products, setProducts] = useState<ClientProductDto[]>([]);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
-  // Sort products
+  // 1. Fetch Categories from API
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await productService.getCategories();
+        if (res.success && res.data && res.data.length > 0) {
+          const apiCats = res.data.map((c) => ({ id: c.slug, name: c.name }));
+          setCategories([{ id: 'all', name: 'All Items' }, ...apiCats]);
+        }
+      } catch (err) {
+        console.warn('Error fetching categories:', err);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  // 2. Fetch Initial 10 Products when Category or Search changes
+  useEffect(() => {
+    async function fetchInitialProducts() {
+      try {
+        setIsLoadingInitial(true);
+        const res = await productService.getProducts({
+          categorySlug: selectedCategory,
+          search: searchQuery,
+          pageNumber: 1,
+          pageSize: 10,
+        });
+
+        if (res.success && res.data) {
+          setProducts(res.data);
+          setHasMore(res.data.length === 10);
+        } else {
+          setProducts([]);
+          setHasMore(false);
+        }
+      } catch (err) {
+        console.warn('Error fetching initial products:', err);
+        setProducts([]);
+        setHasMore(false);
+      } finally {
+        setIsLoadingInitial(false);
+      }
+    }
+
+    fetchInitialProducts();
+  }, [selectedCategory, searchQuery]);
+
+  // 3. Load 5 More Products on Scroll
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !hasMore || isLoadingInitial) return;
+
+    try {
+      setIsLoadingMore(true);
+      const currentCount = products.length;
+      // Calculate effective page number for next 5 items batch
+      const apiPageNumber = currentCount === 10 ? 3 : Math.floor((currentCount - 10) / 5) + 3;
+
+      const res = await productService.getProducts({
+        categorySlug: selectedCategory,
+        search: searchQuery,
+        pageNumber: apiPageNumber,
+        pageSize: 5,
+      });
+
+      if (res.success && res.data && res.data.length > 0) {
+        const newItems = res.data;
+        setProducts((prev) => [...prev, ...newItems]);
+        setHasMore(newItems.length === 5);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.warn('Error loading more products:', err);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Scroll detection handler for automatic infinite scroll
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 120;
+    const isCloseToBottom =
+      layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+
+    if (isCloseToBottom && hasMore && !isLoadingMore && !isLoadingInitial) {
+      handleLoadMore();
+    }
+  };
+
+  // Sort products locally
+  let displayProducts = [...products];
   if (sortOption === 'priceLow') {
-    filtered = [...filtered].sort((a, b) => a.price - b.price);
+    displayProducts.sort((a, b) => a.price - b.price);
   } else if (sortOption === 'priceHigh') {
-    filtered = [...filtered].sort((a, b) => b.price - a.price);
+    displayProducts.sort((a, b) => b.price - a.price);
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+      showsVerticalScrollIndicator={false}
+    >
       {/* 1. Search Bar */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
@@ -75,7 +165,7 @@ export function AllProductsGrid() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryScroll}
         >
-          {CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const isSelected = selectedCategory === cat.id;
             return (
               <TouchableOpacity
@@ -103,7 +193,7 @@ export function AllProductsGrid() {
       {/* 3. Sub-Header: Item Count & Sort Options */}
       <View style={styles.sortHeader}>
         <Text style={styles.countText}>
-          Showing <Text style={styles.countBold}>{filtered.length}</Text> products
+          Showing <Text style={styles.countBold}>{displayProducts.length}</Text> products
         </Text>
 
         <View style={styles.sortPillRow}>
@@ -132,34 +222,63 @@ export function AllProductsGrid() {
       </View>
 
       {/* 4. Products Grid */}
-      {filtered.length > 0 ? (
-        <View style={styles.productGrid}>
-          {filtered.map((item) => (
-            <ProductCard
-              key={item.id}
-              id={item.id}
-              name={item.name}
-              price={item.price}
-              originalPrice={item.originalPrice}
-              unit={item.unit}
-              imageUrl={item.imageUrl}
-              badge={item.badge}
-              discountPercentage={item.discountPercentage}
-              rating={item.rating}
-              width={cardWidth}
-            />
-          ))}
+      {isLoadingInitial ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading products...</Text>
+        </View>
+      ) : displayProducts.length > 0 ? (
+        <View>
+          <View style={styles.productGrid}>
+            {displayProducts.map((item) => (
+              <ProductCard
+                key={item.id}
+                id={item.id}
+                name={item.name}
+                price={item.price}
+                originalPrice={item.originalPrice}
+                unit={item.unit}
+                imageUrl={item.imageUrl}
+                badge={item.badge}
+                discountPercentage={item.discountPercentage}
+                rating={item.rating}
+                isVeg={item.isVeg}
+                width={cardWidth}
+              />
+            ))}
+          </View>
+
+          {/* 5. Infinite Scroll Footer Loader / Action */}
+          <View style={styles.footerLoader}>
+            {isLoadingMore ? (
+              <View style={styles.loadingMoreRow}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadingMoreText}>Loading 5 more products...</Text>
+              </View>
+            ) : hasMore ? (
+              <TouchableOpacity
+                style={styles.loadMoreBtn}
+                activeOpacity={0.8}
+                onPress={handleLoadMore}
+              >
+                <Ionicons name="arrow-down-circle-outline" size={16} color={colors.primary} />
+                <Text style={styles.loadMoreBtnText}>Load 5 More Products</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.allLoadedText}>✓ All products loaded</Text>
+            )}
+          </View>
         </View>
       ) : (
         <View style={styles.emptyContainer}>
-          <Ionicons name="search-outline" size={48} color={colors.textMuted} />
-          <Text style={styles.emptyTitle}>No products found</Text>
+          <Ionicons name="nutrition-outline" size={48} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>No Products Found</Text>
           <Text style={styles.emptySub}>
-            Try searching for a different item or select another category.
+            Products added in the Admin Portal will appear here live.
           </Text>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -248,12 +367,58 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.primary,
   },
+  loadingContainer: {
+    paddingVertical: spacing.xxl,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: spacing.xs,
+    color: colors.textMuted,
+    fontSize: typography.fontSize.xs,
+  },
   productGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingBottom: 95,
+  },
+  footerLoader: {
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingMoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  loadingMoreText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  loadMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    gap: 6,
+  },
+  loadMoreBtnText: {
+    color: colors.primary,
+    fontWeight: '800',
+    fontSize: typography.fontSize.xs,
+  },
+  allLoadedText: {
+    color: colors.textMuted,
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
   },
   emptyContainer: {
     alignItems: 'center',

@@ -44,8 +44,8 @@ public class DataSeeder(
             }
             await SeedRolesAsync();
             await SeedAdminUserAsync();
-            await SeedCategoriesAsync();
-            await SeedBrandsAsync();
+            //await SeedCategoriesAsync();
+            //await SeedBrandsAsync();
             await SeedMenuItemsAsync();
             await SeedServiceableAreasAsync();
             await context.SaveChangesAsync();

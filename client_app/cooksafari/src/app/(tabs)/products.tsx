@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing } from '@/theme';
 import { AllProductsGrid } from '@/components/all-products-grid';
@@ -12,9 +12,7 @@ export default function ProductsScreen() {
         <Text style={styles.headerTitle}>All Products</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <AllProductsGrid />
-      </ScrollView>
+      <AllProductsGrid />
     </SafeAreaView>
   );
 }

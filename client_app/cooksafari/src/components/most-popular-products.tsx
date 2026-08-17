@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,13 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, borderRadius, spacing } from '@/theme';
-import { PRODUCTS_DATA, ProductItem } from '@/constants/products';
+import { productService, ClientProductDto } from '@/services/api/product-service';
 
 interface PopularCardProps {
-  product: ProductItem;
+  product: ClientProductDto;
   rank: number;
 }
 
@@ -42,7 +43,7 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
         <View style={styles.ratingRow}>
           <Ionicons name="star" size={12} color="#F59E0B" />
           <Text style={styles.ratingVal}>{product.rating || 4.9}</Text>
-          <Text style={styles.reviewsVal}>({product.reviewsCount || 1200}+)</Text>
+          <Text style={styles.reviewsVal}>(1.2k+)</Text>
         </View>
 
         {/* Title */}
@@ -95,8 +96,29 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
 }
 
 export function MostPopularProducts() {
-  // Pick top 4 products for Most Popular section
-  const popularList = PRODUCTS_DATA.slice(0, 5);
+  const [popularProducts, setPopularProducts] = useState<ClientProductDto[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadPopular() {
+      try {
+        setIsLoading(true);
+        const res = await productService.getPopularProducts(10);
+        if (res.success && res.data) {
+          setPopularProducts(res.data);
+        } else {
+          setPopularProducts([]);
+        }
+      } catch (err) {
+        console.warn('Error fetching popular products:', err);
+        setPopularProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadPopular();
+  }, []);
 
   return (
     <View style={styles.sectionContainer}>
@@ -113,16 +135,31 @@ export function MostPopularProducts() {
         </View>
       </View>
 
-      {/* Horizontal Scrollable Product Cards */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollList}
-      >
-        {popularList.map((item, index) => (
-          <PopularProductCard key={item.id} product={item} rank={index + 1} />
-        ))}
-      </ScrollView>
+      {/* Horizontal Scrollable Product Cards or States */}
+      {isLoading ? (
+        <View style={{ paddingVertical: spacing.lg, alignItems: 'center' }}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={{ marginTop: spacing.xs, color: colors.textMuted, fontSize: 11 }}>
+            Loading popular products...
+          </Text>
+        </View>
+      ) : popularProducts.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollList}
+        >
+          {popularProducts.map((item, index) => (
+            <PopularProductCard key={item.id} product={item} rank={index + 1} />
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="flame-outline" size={28} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>No Popular Products Found</Text>
+          <Text style={styles.emptySub}>Products added in Admin Portal will appear here live.</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -296,6 +333,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     minWidth: 14,
     textAlign: 'center',
+  },
+  emptyContainer: {
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    alignItems: 'center',
+    marginRight: spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginTop: spacing.xs,
+  },
+  emptySub: {
+    fontSize: 11,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 2,
   },
 });
 

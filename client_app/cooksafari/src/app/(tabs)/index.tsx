@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,15 +9,16 @@ import {
   Image,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '@/theme';
-import { PRODUCTS_DATA } from '@/constants/products';
 import { ProductCard } from '@/components/product-card';
 import { MostPopularProducts } from '@/components/most-popular-products';
 import { useLocationStore } from '@/store/location-store';
 import { MapPinPickerModal } from '@/components/map-pin-picker-modal';
+import { productService, ClientProductDto } from '@/services/api/product-service';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - spacing.lg * 2 - spacing.md) / 2;
@@ -33,17 +34,37 @@ const CATEGORIES = [
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [products, setProducts] = useState<ClientProductDto[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   const { currentLocation, openPickerModal } = useLocationStore();
-
   const isServiceable = currentLocation ? currentLocation.isServiceable : true;
 
-  const filteredProducts =
-    selectedCategory === 'all'
-      ? PRODUCTS_DATA
-      : PRODUCTS_DATA.filter((p) =>
-          p.category.toLowerCase().includes(selectedCategory)
-        );
+  // Fetch real products from ClientApp API
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        setIsLoadingProducts(true);
+        const res = await productService.getProducts({
+          categorySlug: selectedCategory,
+          search: searchQuery,
+        });
+
+        if (res.success && res.data) {
+          setProducts(res.data);
+        } else {
+          setProducts([]);
+        }
+      } catch (err) {
+        console.warn('Error fetching client products:', err);
+        setProducts([]);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    }
+
+    loadProducts();
+  }, [selectedCategory, searchQuery]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -207,23 +228,43 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.productGrid}>
-          {filteredProducts.map((item) => (
-            <ProductCard
-              key={item.id}
-              id={item.id}
-              name={item.name}
-              price={item.price}
-              originalPrice={item.originalPrice}
-              unit={item.unit}
-              imageUrl={item.imageUrl}
-              badge={item.badge}
-              discountPercentage={item.discountPercentage}
-              rating={item.rating}
-              width={cardWidth}
-            />
-          ))}
-        </View>
+        {isLoadingProducts ? (
+          <View style={{ paddingVertical: spacing.xl, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={{ marginTop: spacing.xs, color: colors.textMuted, fontSize: typography.fontSize.xs }}>
+              Loading fresh products...
+            </Text>
+          </View>
+        ) : products.length > 0 ? (
+          <View style={styles.productGrid}>
+            {products.map((item) => (
+              <ProductCard
+                key={item.id}
+                id={item.id}
+                name={item.name}
+                price={item.price}
+                originalPrice={item.originalPrice}
+                unit={item.unit}
+                imageUrl={item.imageUrl}
+                badge={item.badge}
+                discountPercentage={item.discountPercentage}
+                rating={item.rating}
+                isVeg={item.isVeg}
+                width={cardWidth}
+              />
+            ))}
+          </View>
+        ) : (
+          <View style={{ paddingVertical: spacing.xl, paddingHorizontal: spacing.md, alignItems: 'center', backgroundColor: colors.surfaceSubtle, borderRadius: borderRadius.lg, marginHorizontal: spacing.lg }}>
+            <Ionicons name="nutrition-outline" size={32} color={colors.textMuted} />
+            <Text style={{ marginTop: spacing.xs, color: colors.textPrimary, fontWeight: '700', fontSize: typography.fontSize.sm }}>
+              No Products Found
+            </Text>
+            <Text style={{ color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 2 }}>
+              Add products in Admin Portal to display them here live.
+            </Text>
+          </View>
+        )}
 
         {/* 6. Most Popular Products Component (Bottom Section) */}
         <MostPopularProducts />

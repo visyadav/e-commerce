@@ -21,7 +21,10 @@ export interface ProductCardProps {
   badge?: string;
   discountPercentage?: string;
   rating?: number;
+  isVeg?: boolean;
+  deliveryTime?: string;
   onPress?: () => void;
+  onAddToCart?: (id: string, quantity: number) => void;
   width?: number;
   style?: StyleProp<ViewStyle>;
 }
@@ -35,16 +38,37 @@ export function ProductCard({
   imageUrl,
   badge,
   discountPercentage,
-  rating,
+  rating = 4.8,
+  isVeg = true,
+  deliveryTime = '10 MINS',
   onPress,
+  onAddToCart,
   width,
   style,
 }: ProductCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(0);
+  const [imageError, setImageError] = useState(false);
+  const fallbackImage = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80';
 
-  const handleIncrement = () => setQuantity((q) => q + 1);
-  const handleDecrement = () => setQuantity((q) => (q > 0 ? q - 1 : 0));
+  // Calculate discount percentage automatically if originalPrice is passed
+  const computedDiscount = discountPercentage || (
+    originalPrice && originalPrice > price
+      ? `${Math.round(((originalPrice - price) / originalPrice) * 100)}% OFF`
+      : null
+  );
+
+  const handleIncrement = () => {
+    const newQty = quantity + 1;
+    setQuantity(newQty);
+    onAddToCart?.(id, newQty);
+  };
+
+  const handleDecrement = () => {
+    const newQty = quantity > 0 ? quantity - 1 : 0;
+    setQuantity(newQty);
+    onAddToCart?.(id, newQty);
+  };
 
   return (
     <TouchableOpacity
@@ -52,45 +76,64 @@ export function ProductCard({
       onPress={onPress}
       style={[styles.card, width ? { width } : null, style]}
     >
-      {/* Top Image Canvas Container */}
+      {/* 1. Top Image Canvas */}
       <View style={styles.imageCanvas}>
-        {/* Discount / Category Badge */}
-        {discountPercentage ? (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{discountPercentage}</Text>
-          </View>
-        ) : badge ? (
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{badge}</Text>
-          </View>
-        ) : null}
+        {/* Top Badges Row */}
+        <View style={styles.topBadgesRow}>
+          {computedDiscount ? (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>{computedDiscount}</Text>
+            </View>
+          ) : badge ? (
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{badge}</Text>
+            </View>
+          ) : <View />}
 
-        {/* Favorite Heart Button */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setIsFavorite(!isFavorite)}
-          style={styles.favoriteButton}
-        >
-          <Ionicons
-            name={isFavorite ? 'heart' : 'heart-outline'}
-            size={18}
-            color={isFavorite ? colors.danger : colors.textMuted}
-          />
-        </TouchableOpacity>
+          {/* Favorite Button */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setIsFavorite(!isFavorite)}
+            style={styles.favoriteButton}
+          >
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={16}
+              color={isFavorite ? colors.danger : colors.textMuted}
+            />
+          </TouchableOpacity>
+        </View>
 
         {/* Product Image */}
         <Image
-          source={{ uri: imageUrl }}
+          source={{ uri: imageError || !imageUrl ? fallbackImage : imageUrl }}
           style={styles.productImage}
           resizeMode="cover"
+          onError={() => setImageError(true)}
         />
+
+        {/* Delivery ETA Pill */}
+        {deliveryTime ? (
+          <View style={styles.etaPill}>
+            <Ionicons name="flash" size={10} color="#D97706" />
+            <Text style={styles.etaText}>{deliveryTime}</Text>
+          </View>
+        ) : null}
       </View>
 
-      {/* Content Details */}
+      {/* 2. Content Details */}
       <View style={styles.contentContainer}>
-        {/* Rating & Unit Row */}
+        {/* Meta Row: Veg Icon + Unit + Rating */}
         <View style={styles.metaRow}>
-          <Text style={styles.unitText}>{unit}</Text>
+          <View style={styles.leftMeta}>
+            {isVeg && (
+              <View style={styles.vegSquare}>
+                <View style={styles.vegCircle} />
+              </View>
+            )}
+            <Text style={styles.unitText}>{unit}</Text>
+          </View>
+
           {rating ? (
             <View style={styles.ratingBadge}>
               <Ionicons name="star" size={10} color="#F59E0B" />
@@ -99,41 +142,38 @@ export function ProductCard({
           ) : null}
         </View>
 
-        {/* Product Name */}
+        {/* Product Title */}
         <Text style={styles.productName} numberOfLines={2}>
           {name}
         </Text>
 
-        {/* Price & Quantity Add Action Row */}
+        {/* Price & Add Stepper Row */}
         <View style={styles.actionRow}>
-          {/* Price Container */}
           <View style={styles.priceContainer}>
-            <View style={styles.priceRow}>
-              <Text style={styles.currentPrice}>₹{price}</Text>
-              {originalPrice ? (
-                <Text style={styles.originalPrice}>₹{originalPrice}</Text>
-              ) : null}
-            </View>
+            <Text style={styles.currentPrice}>₹{price}</Text>
+            {originalPrice && originalPrice > price ? (
+              <Text style={styles.originalPrice}>₹{originalPrice}</Text>
+            ) : null}
           </View>
 
-          {/* Interactive Stepper / ADD Button */}
+          {/* ADD / Counter Stepper */}
           {quantity === 0 ? (
             <TouchableOpacity
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               onPress={handleIncrement}
               style={styles.addButton}
             >
               <Text style={styles.addButtonText}>ADD</Text>
-              <Ionicons name="add" size={16} color={colors.primary} />
+              <Ionicons name="add" size={15} color={colors.primary} />
             </TouchableOpacity>
           ) : (
             <View style={styles.stepperContainer}>
               <TouchableOpacity onPress={handleDecrement} style={styles.stepperBtn}>
-                <Ionicons name="remove" size={14} color={colors.textWhite} />
+                <Ionicons name="remove" size={13} color={colors.textWhite} />
               </TouchableOpacity>
               <Text style={styles.stepperValue}>{quantity}</Text>
               <TouchableOpacity onPress={handleIncrement} style={styles.stepperBtn}>
-                <Ionicons name="add" size={14} color={colors.textWhite} />
+                <Ionicons name="add" size={13} color={colors.textWhite} />
               </TouchableOpacity>
             </View>
           )}
@@ -152,81 +192,118 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: spacing.md,
     elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   imageCanvas: {
     width: '100%',
-    height: 125,
+    height: 130,
     backgroundColor: colors.surfaceSubtle,
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing.xs,
   },
-  productImage: {
-    width: '85%',
-    height: '85%',
-    borderRadius: borderRadius.md,
+  topBadgesRow: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10,
   },
   discountBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: '#059669',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
     borderRadius: borderRadius.xs,
-    zIndex: 5,
   },
   discountText: {
-    color: colors.textWhite,
-    fontSize: 10,
+    color: '#FFFFFF',
+    fontSize: 9,
     fontWeight: '800',
+    letterSpacing: 0.4,
   },
   categoryBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: colors.primaryDark,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
     borderRadius: borderRadius.xs,
-    zIndex: 5,
   },
   categoryBadgeText: {
-    color: colors.textWhite,
+    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
   },
   favoriteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 5,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+  },
+  productImage: {
+    width: '82%',
+    height: '82%',
+    borderRadius: borderRadius.sm,
+  },
+  etaPill: {
+    position: 'absolute',
+    bottom: 6,
+    left: 8,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: borderRadius.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  etaText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#B45309',
   },
   contentContainer: {
     padding: spacing.md,
-    justifyContent: 'space-between',
-    flex: 1,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
+  },
+  leftMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  vegSquare: {
+    width: 12,
+    height: 12,
+    borderWidth: 1,
+    borderColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 2,
+  },
+  vegCircle: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#059669',
   },
   unitText: {
     fontSize: typography.fontSize.xs,
@@ -240,11 +317,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: borderRadius.xs,
-    gap: 3,
+    gap: 2,
   },
   ratingText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#92400E',
   },
   productName: {
@@ -252,19 +329,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
     lineHeight: 18,
-    marginBottom: spacing.sm,
     height: 36,
+    marginBottom: spacing.xs,
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing.xs,
+    marginTop: 4,
   },
   priceContainer: {
-    flexDirection: 'column',
-  },
-  priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 4,
@@ -275,7 +349,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   originalPrice: {
-    fontSize: typography.fontSize.xs,
+    fontSize: 11,
     color: colors.textMuted,
     textDecorationLine: 'line-through',
   },
@@ -301,7 +375,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: borderRadius.sm,
     paddingHorizontal: 4,
-    paddingVertical: 4,
+    paddingVertical: 3,
     gap: 6,
   },
   stepperBtn: {
@@ -315,8 +389,8 @@ const styles = StyleSheet.create({
   stepperValue: {
     color: colors.textWhite,
     fontWeight: '800',
-    fontSize: 13,
-    minWidth: 16,
+    fontSize: 12,
+    minWidth: 14,
     textAlign: 'center',
   },
 });
