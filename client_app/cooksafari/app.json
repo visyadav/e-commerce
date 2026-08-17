@@ -7,6 +7,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "cooksafari",
     "userInterfaceStyle": "automatic",
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 3000,
+      "url": "https://u.expo.dev/c9372ab0-8d11-4e46-b3e1-ddcc40c2c57c"
+    },
     "ios": {
       "icon": "./assets/expo.icon"
     },
@@ -39,6 +45,15 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c9372ab0-8d11-4e46-b3e1-ddcc40c2c57c"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }

@@ -98,24 +98,18 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Non-Serviceable Warning Banner */}
+      {/* Minimal Non-Serviceable Warning Strip */}
       {currentLocation && !currentLocation.isServiceable && (
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={openPickerModal}
-          style={styles.warningBanner}
+          style={styles.minimalWarningBar}
         >
-          <View style={styles.warningHeader}>
-            <Ionicons name="warning" size={20} color="#991B1B" />
-            <Text style={styles.warningTitle}>Location Outside Delivery Zone</Text>
-          </View>
-          <Text style={styles.warningSub}>
-            {currentLocation.message ||
-              `CookSafari currently delivers only within 5 KM of our active hubs. ${currentLocation.title} is ${currentLocation.distanceInKm} KM away.`}
+          <Ionicons name="alert-circle" size={15} color="#EF4444" />
+          <Text style={styles.minimalWarningText} numberOfLines={1}>
+            Outside delivery area {currentLocation.distanceInKm > 0 ? `(${currentLocation.distanceInKm} KM)` : ''}
           </Text>
-          <View style={styles.switchLocationPill}>
-            <Text style={styles.switchLocationText}>Switch Delivery Address →</Text>
-          </View>
+          <Text style={styles.minimalChangeLink}>Change Pin →</Text>
         </TouchableOpacity>
       )}
 
@@ -293,40 +287,25 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontWeight: '700',
   },
-  warningBanner: {
-    backgroundColor: '#FEE2E2',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FCA5A5',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    gap: 4,
-  },
-  warningHeader: {
+  minimalWarningBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderLeftWidth: 3,
+    borderLeftColor: '#EF4444',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 7,
     gap: 6,
   },
-  warningTitle: {
+  minimalWarningText: {
+    flex: 1,
     color: '#991B1B',
-    fontWeight: '800',
-    fontSize: typography.fontSize.xs,
-  },
-  warningSub: {
-    color: '#7F1D1D',
     fontSize: 11,
-    lineHeight: 15,
+    fontWeight: '700',
   },
-  switchLocationPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#991B1B',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: borderRadius.xs,
-    marginTop: 2,
-  },
-  switchLocationText: {
-    color: '#FFFFFF',
-    fontSize: 10,
+  minimalChangeLink: {
+    color: '#B91C1C',
+    fontSize: 11,
     fontWeight: '800',
   },
   profileBtn: {

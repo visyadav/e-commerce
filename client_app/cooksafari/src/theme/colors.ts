@@ -3,10 +3,10 @@ export const colors = {
   primary: '#10B981',        // Emerald Green Primary Accent
   primaryDark: '#047857',
   primaryLight: '#ECFDF5',   // Soft Mint Tint
-  
+
   secondary: '#FF6B00',      // Sunset Orange Accent (CTA & Sale Badges)
   secondaryLight: '#FFF4ED',
-  
+
   accent: '#6366F1',         // Electric Indigo
   accentLight: '#EEF2FF',
 
@@ -16,14 +16,14 @@ export const colors = {
   surfaceSubtle: '#F1F5F9',   // Light Muted Grey Surface
   cardBorder: '#E2E8F0',
   border: '#E2E8F0',
-  shadow: '#000000',
+  shadow: '#1f1e1eff',
 
   // Text Colors
   textPrimary: '#0F172A',    // Deep Slate Heading
   textSecondary: '#475569',  // Medium Slate Text
   textMuted: '#94A3B8',      // Muted Subtext
   textWhite: '#FFFFFF',
-  
+
   // Status Colors
   success: '#10B981',
   successLight: '#D1FAE5',
