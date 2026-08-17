@@ -6,6 +6,7 @@ import { StyleSheet, Platform, View, TouchableOpacity, Text, Dimensions } from '
 import { BlurView } from 'expo-blur';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { FloatingCartBar } from '@/components/floating-cart-bar';
 
 function LiquidGlassTabBar(props: BottomTabBarProps) {
   const { state, descriptors, navigation } = props;
@@ -88,65 +89,68 @@ function LiquidGlassTabBar(props: BottomTabBarProps) {
 
 export default function TabLayout() {
   return (
-    <Tabs
-      tabBar={(props) => <LiquidGlassTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={22}
-              color={color}
-            />
-          ),
+    <View style={{ flex: 1 }}>
+      <Tabs
+        tabBar={(props) => <LiquidGlassTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
         }}
-      />
-      <Tabs.Screen
-        name="products"
-        options={{
-          title: 'Products',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'grid' : 'grid-outline'}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="orders"
-        options={{
-          title: 'Orders',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'receipt' : 'receipt-outline'}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'home' : 'home-outline'}
+                size={22}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="products"
+          options={{
+            title: 'Products',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'grid' : 'grid-outline'}
+                size={22}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="orders"
+          options={{
+            title: 'Orders',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'receipt' : 'receipt-outline'}
+                size={22}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'person' : 'person-outline'}
+                size={22}
+                color={color}
+              />
+            ),
+          }}
+        />
+      </Tabs>
+      <FloatingCartBar />
+    </View>
   );
 }
 
@@ -192,7 +196,7 @@ const styles = StyleSheet.create({
   },
   glassHighlightGlow: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.75)', // Light bright frosted glass tint
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
   },
   tabButton: {
     flex: 1,

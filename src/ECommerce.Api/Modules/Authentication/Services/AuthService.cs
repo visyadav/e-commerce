@@ -306,6 +306,52 @@ public class AuthService : IAuthService
         return ApiResponse.SuccessResponse("Password changed successfully.");
     }
 
+    public async Task<ApiResponse<AuthResponse>> LoginWithMobileOtpAsync(MobileOtpLoginRequest request, CancellationToken cancellationToken = default)
+    {
+        var cleanPhone = request.PhoneNumber.Trim();
+        if (string.IsNullOrWhiteSpace(cleanPhone) || cleanPhone.Length < 10)
+        {
+            return ApiResponse<AuthResponse>.FailureResponse("Please enter a valid 10-digit mobile number.", ["Invalid phone number"]);
+        }
+
+        // Find or create customer user
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == cleanPhone || u.UserName == cleanPhone, cancellationToken);
+        if (user == null)
+        {
+            var name = !string.IsNullOrWhiteSpace(request.FullName) ? request.FullName.Trim() : $"Customer {cleanPhone[^4..]}";
+            user = new ApplicationUser
+            {
+                UserName = cleanPhone,
+                PhoneNumber = cleanPhone,
+                FirstName = name,
+                LastName = name,
+                Email = $"",
+                EmailConfirmed = true,
+                PhoneNumberConfirmed = true,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var createResult = await _userManager.CreateAsync(user, $"Cust#{cleanPhone[^4..]}!2026");
+            if (!createResult.Succeeded)
+            {
+                var errs = createResult.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<AuthResponse>.FailureResponse("Failed to create customer session.", errs);
+            }
+
+            if (!await _roleManager.RoleExistsAsync(AppConstants.Roles.Customer))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(AppConstants.Roles.Customer));
+            }
+            await _userManager.AddToRoleAsync(user, AppConstants.Roles.Customer);
+        }
+
+        user.LastLoginAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(user);
+
+        return await GenerateAuthResponseAsync(user, cancellationToken);
+    }
+
     private async Task<ApiResponse<AuthResponse>> GenerateAuthResponseAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         var roles = await _userManager.GetRolesAsync(user);

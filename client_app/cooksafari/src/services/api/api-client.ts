@@ -3,9 +3,14 @@ import { ApiResponse } from '@/types/api';
 
 export class ApiClient {
   private baseUrl: string;
+  private token: string | null = null;
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl || ENV.API_BASE_URL;
+  }
+
+  public setToken(token: string | null) {
+    this.token = token;
   }
 
   private getEffectiveBaseUrl(): string {
@@ -20,14 +25,20 @@ export class ApiClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), ENV.TIMEOUT_MS);
 
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    };
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
     try {
       const response = await fetch(url, {
         ...options,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
+        headers,
         signal: controller.signal,
       });
 
@@ -51,13 +62,35 @@ export class ApiClient {
 
   public async post<T>(
     endpoint: string,
-    body: unknown,
+    body?: unknown,
     headers?: Record<string, string>
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       headers,
-      body: JSON.stringify(body),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  public async put<T>(
+    endpoint: string,
+    body?: unknown,
+    headers?: Record<string, string>
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  public async delete<T>(
+    endpoint: string,
+    headers?: Record<string, string>
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+      headers,
     });
   }
 }

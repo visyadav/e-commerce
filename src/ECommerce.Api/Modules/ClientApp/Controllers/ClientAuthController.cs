@@ -29,6 +29,23 @@ public class ClientAuthController(IAuthService authService) : BaseApiController
     }
 
     /// <summary>
+    /// Authenticate or register customer by mobile number (OTP verification flow)
+    /// </summary>
+    [HttpPost("mobile-login")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> MobileLogin([FromBody] MobileOtpLoginRequest request, CancellationToken cancellationToken)
+    {
+        var response = await authService.LoginWithMobileOtpAsync(request, cancellationToken);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
+    /// <summary>
     /// Register new client application user (Customer) by phone number (email optional)
     /// </summary>
     [HttpPost("register")]

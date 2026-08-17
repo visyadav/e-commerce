@@ -12,6 +12,7 @@ public interface IAuthService
     // Customer User Specific Operations
     Task<ApiResponse<AuthResponse>> RegisterCustomerAsync(CustomerRegisterRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<AuthResponse>> LoginCustomerAsync(CustomerLoginRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<AuthResponse>> LoginWithMobileOtpAsync(MobileOtpLoginRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<AuthResponse>> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<AuthResponse>> GetMeAsync(string userId, CancellationToken cancellationToken = default);
     Task<ApiResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request, CancellationToken cancellationToken = default);

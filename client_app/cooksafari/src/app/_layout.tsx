@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 import { LocationProvider } from '@/providers/location-provider';
 import { OTAUpdateProvider } from '@/providers/ota-update-provider';
+import { MobileLoginModal } from '@/components/mobile-login-modal';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,6 +23,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack>
+          <MobileLoginModal />
         </LocationProvider>
       </OTAUpdateProvider>
     </ThemeProvider>

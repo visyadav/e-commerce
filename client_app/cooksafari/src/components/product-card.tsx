@@ -29,6 +29,9 @@ export interface ProductCardProps {
   style?: StyleProp<ViewStyle>;
 }
 
+import { useCartStore } from '@/store/cart-store';
+import { useAuthStore } from '@/store/auth-store';
+
 export function ProductCard({
   id,
   name,
@@ -47,9 +50,12 @@ export function ProductCard({
   style,
 }: ProductCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [quantity, setQuantity] = useState(0);
   const [imageError, setImageError] = useState(false);
   const fallbackImage = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80';
+
+  const { getItemQuantity, addItem, updateQuantity } = useCartStore();
+  const { isAuthenticated, openLoginModal } = useAuthStore();
+  const quantity = getItemQuantity(id);
 
   // Calculate discount percentage automatically if originalPrice is passed
   const computedDiscount = discountPercentage || (
@@ -59,15 +65,20 @@ export function ProductCard({
   );
 
   const handleIncrement = () => {
-    const newQty = quantity + 1;
-    setQuantity(newQty);
-    onAddToCart?.(id, newQty);
+    if (!isAuthenticated) {
+      openLoginModal({
+        product: { id, name, price, originalPrice, unit, imageUrl, isVeg },
+        quantity: 1,
+      });
+      return;
+    }
+    addItem({ id, name, price, originalPrice, unit, imageUrl, isVeg }, 1);
+    onAddToCart?.(id, quantity + 1);
   };
 
   const handleDecrement = () => {
-    const newQty = quantity > 0 ? quantity - 1 : 0;
-    setQuantity(newQty);
-    onAddToCart?.(id, newQty);
+    updateQuantity(id, quantity - 1);
+    onAddToCart?.(id, Math.max(0, quantity - 1));
   };
 
   return (

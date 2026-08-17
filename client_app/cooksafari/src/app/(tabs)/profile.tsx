@@ -3,8 +3,11 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '@/store/auth-store';
 
 export default function ProfileScreen() {
+  const { isAuthenticated, user, logout, openLoginModal } = useAuthStore();
+
   const menuOptions = [
     { icon: 'location-outline', title: 'Delivery Addresses', subtitle: 'Manage home & office address' },
     { icon: 'card-outline', title: 'Payment Methods', subtitle: 'UPI, Cards & Wallet' },
@@ -26,8 +29,17 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>Customer Account</Text>
-            <Text style={styles.userPhone}>+91 98765 43210</Text>
+            {isAuthenticated && user ? (
+              <>
+                <Text style={styles.userName}>{user.fullName}</Text>
+                <Text style={styles.userPhone}>+91 {user.phoneNumber}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.userName}>Guest Customer</Text>
+                <Text style={styles.userPhone}>Login to track orders & earn rewards</Text>
+              </>
+            )}
           </View>
         </View>
 
@@ -49,11 +61,18 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={20} color={colors.secondary} />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        {/* Auth Action Button */}
+        {isAuthenticated ? (
+          <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+            <Ionicons name="log-out-outline" size={20} color={colors.secondary} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.loginButton} onPress={() => openLoginModal()}>
+            <Ionicons name="phone-portrait-outline" size={20} color={colors.textWhite} />
+            <Text style={styles.loginText}>Login with Mobile Number</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -104,6 +123,7 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     gap: 4,
+    flex: 1,
   },
   userName: {
     fontSize: typography.fontSize.lg,
@@ -160,6 +180,20 @@ const styles = StyleSheet.create({
   logoutText: {
     color: colors.secondary,
     fontWeight: '700',
+    fontSize: typography.fontSize.md,
+  },
+  loginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    gap: spacing.xs,
+  },
+  loginText: {
+    color: colors.textWhite,
+    fontWeight: '800',
     fontSize: typography.fontSize.md,
   },
 });
