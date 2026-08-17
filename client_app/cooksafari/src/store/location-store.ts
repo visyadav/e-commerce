@@ -46,24 +46,35 @@ export const useLocationStore = create<LocationState>((set, get) => ({
   permissionStatus: null,
 
   setLocation: async (location: LocationItem) => {
-    // Re-verify against backend Web API whenever location changes
-    const response = await locationService.checkServiceability({
-      latitude: location.latitude,
-      longitude: location.longitude,
-      sectorOrAddress: location.address,
-      pincode: location.pincode,
-    });
+    try {
+      // Re-verify against backend Web API whenever location changes
+      const response = await locationService.checkServiceability({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        sectorOrAddress: location.address,
+        pincode: location.pincode,
+      });
 
-    const apiData = response.success ? response.data : null;
+      const apiData = response.success ? response.data : null;
 
-    const updatedLoc: LocationItem = {
-      ...location,
-      isServiceable: apiData ? apiData.isServiceable : location.isServiceable,
-      distanceInKm: apiData && apiData.distanceInKm !== undefined ? apiData.distanceInKm : location.distanceInKm,
-      message: apiData ? apiData.message : undefined,
-    };
+      const updatedLoc: LocationItem = {
+        ...location,
+        isServiceable: apiData ? apiData.isServiceable : false,
+        distanceInKm: apiData && apiData.distanceInKm !== undefined ? apiData.distanceInKm : location.distanceInKm,
+        message: apiData ? apiData.message : `[Debug API Warning] ${response.message || 'Service status check failed'}`,
+      };
 
-    set({ currentLocation: updatedLoc, isPickerModalOpen: false });
+      set({ currentLocation: updatedLoc, isPickerModalOpen: false });
+    } catch (err: any) {
+      set({
+        currentLocation: {
+          ...location,
+          isServiceable: false,
+          message: `[Debug Network Warning] Could not connect to API: ${err?.message || 'Network Error'}`,
+        },
+        isPickerModalOpen: false,
+      });
+    }
   },
 
   openPickerModal: () => {

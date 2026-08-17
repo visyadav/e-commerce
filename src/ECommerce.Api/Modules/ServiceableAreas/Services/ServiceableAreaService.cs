@@ -81,59 +81,13 @@ public class ServiceableAreaService : IServiceableAreaService
             };
         }
 
-        // 1. If GPS coordinates are provided, perform Haversine distance calculation
-        if (request.Latitude.HasValue && request.Longitude.HasValue)
-        {
-            foreach (var area in activeAreas)
-            {
-                var distance = CalculateDistanceInKm(
-                    request.Latitude.Value,
-                    request.Longitude.Value,
-                    area.Latitude,
-                    area.Longitude
-                );
+        var requestedPincode = request.Pincode?.Trim();
 
-                if (distance <= area.RadiusInKm)
-                {
-                    return new ServiceabilityResultDto
-                    {
-                        IsServiceable = true,
-                        MatchedHubName = area.Name,
-                        DistanceInKm = Math.Round(distance, 2),
-                        AllowedRadiusKm = area.RadiusInKm,
-                        Message = $"Delivery available! Your location is {Math.Round(distance, 1)} km from {area.Name}."
-                    };
-                }
-            }
-
-            // Calculate nearest hub distance for error response
-            var nearest = activeAreas
-                .Select(a => new
-                {
-                    Area = a,
-                    Dist = CalculateDistanceInKm(request.Latitude.Value, request.Longitude.Value, a.Latitude, a.Longitude)
-                })
-                .OrderBy(x => x.Dist)
-                .First();
-
-            return new ServiceabilityResultDto
-            {
-                IsServiceable = false,
-                MatchedHubName = nearest.Area.Name,
-                DistanceInKm = Math.Round(nearest.Dist, 2),
-                AllowedRadiusKm = nearest.Area.RadiusInKm,
-                Message = $"Location is {Math.Round(nearest.Dist, 1)} km away from {nearest.Area.Name} (Max radius: {nearest.Area.RadiusInKm} km). CookSafari does not deliver here yet."
-            };
-        }
-
-        // 2. Fallback to Sector Name or Pincode matching if GPS coordinates are missing
-        if (!string.IsNullOrWhiteSpace(request.SectorOrAddress) || !string.IsNullOrWhiteSpace(request.Pincode))
+        // Pure Pincode Match: If requested pincode is in active service pincodes -> Available, otherwise Not Available
+        if (!string.IsNullOrWhiteSpace(requestedPincode))
         {
             var match = activeAreas.FirstOrDefault(a =>
-                (!string.IsNullOrEmpty(request.Pincode) && a.Pincode == request.Pincode) ||
-                (!string.IsNullOrEmpty(request.SectorOrAddress) &&
-                 (request.SectorOrAddress.Contains("62") || a.Name.Contains(request.SectorOrAddress, StringComparison.OrdinalIgnoreCase)))
-            );
+                string.Equals(a.Pincode.Trim(), requestedPincode, StringComparison.OrdinalIgnoreCase));
 
             if (match != null)
             {
@@ -141,32 +95,30 @@ public class ServiceableAreaService : IServiceableAreaService
                 {
                     IsServiceable = true,
                     MatchedHubName = match.Name,
-                    AllowedRadiusKm = match.RadiusInKm,
-                    Message = $"Delivery available at {match.Name}!"
+                    AllowedRadiusKm = 0,
+                    DistanceInKm = 0,
+                    Message = $"Delivery available in {match.City}! Pincode {match.Pincode} is serviceable ({match.Name})."
                 };
             }
+
+            var activePincodesList = string.Join(", ", activeAreas.Select(a => a.Pincode.Trim()).Distinct());
+            return new ServiceabilityResultDto
+            {
+                IsServiceable = false,
+                MatchedHubName = null,
+                AllowedRadiusKm = 0,
+                DistanceInKm = 0,
+                Message = $"CookSafari does not deliver to pincode {requestedPincode} yet. Active delivery pincodes: {activePincodesList}."
+            };
         }
 
         return new ServiceabilityResultDto
         {
             IsServiceable = false,
-            Message = "Location outside CookSafari delivery zone. We currently deliver to Sector 62, Noida."
+            MatchedHubName = null,
+            AllowedRadiusKm = 0,
+            DistanceInKm = 0,
+            Message = "Please enter or select a valid 6-digit pincode to check delivery availability."
         };
     }
-
-    public static double CalculateDistanceInKm(double lat1, double lon1, double lat2, double lon2)
-    {
-        const double r = 6371.0;
-        var dLat = ToRadians(lat2 - lat1);
-        var dLon = ToRadians(lon2 - lon1);
-
-        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
-                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-
-        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-        return r * c;
-    }
-
-    private static double ToRadians(double angle) => (Math.PI / 180.0) * angle;
 }

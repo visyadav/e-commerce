@@ -15,6 +15,7 @@ import {
 import MapView, { Region, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, borderRadius, spacing } from '@/theme';
+import * as ExpoLocation from 'expo-location';
 import { useLocationStore, LocationItem, HUB_LAT, HUB_LNG } from '@/store/location-store';
 import { locationService } from '@/services/api/location-service';
 import { addressService } from '@/services/api/address-service';
@@ -51,7 +52,7 @@ export function MapPinPickerModal() {
   const [houseNo, setHouseNo] = useState('');
   const [street, setStreet] = useState('');
   const [landmark, setLandmark] = useState('');
-  const [pincode, setPincode] = useState('201309');
+  const [pincode, setPincode] = useState('');
   const [label, setLabel] = useState<'Home' | 'Work' | 'Other'>('Home');
   const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -70,36 +71,69 @@ export function MapPinPickerModal() {
 
       setRegion(initialRegion);
       mapRef.current?.animateToRegion(initialRegion, 800);
-      checkPinpointServiceability(initialLat, initialLng);
+      handleRegionChangeComplete(initialRegion);
     }
   }, [isPickerModalOpen]);
 
-  const checkPinpointServiceability = async (lat: number, lng: number) => {
+  const checkPinpointServiceability = async (lat: number, lng: number, pinToUse?: string) => {
     try {
       setIsChecking(true);
+      const targetPincode = (pinToUse !== undefined ? pinToUse : pincode).trim();
+
+      if (!targetPincode) {
+        setIsServiceable(false);
+        setServiceMessage('Enter or select a pincode to check delivery serviceability.');
+        return;
+      }
+
       const res = await locationService.checkServiceability({
+        pincode: targetPincode,
         latitude: lat,
         longitude: lng,
         sectorOrAddress: street || 'Pinpoint Location',
-        pincode: pincode || '201309',
       });
 
       if (res.success && res.data) {
         setIsServiceable(res.data.isServiceable);
         setDistanceKm(res.data.distanceInKm ?? 0);
         setServiceMessage(res.data.message);
+      } else {
+        setIsServiceable(false);
+        const errMsg = res.errors && res.errors.length > 0 ? res.errors.join(', ') : res.message || 'Failed to verify service status';
+        setServiceMessage(`[Debug Error] API Status Failed: ${errMsg}`);
       }
-    } catch {
-      setIsServiceable(true);
+    } catch (err: any) {
+      setIsServiceable(false);
+      const detail = err?.message || String(err);
+      setServiceMessage(`[Debug Network Error] Cannot connect to Web API at http://192.168.1.3:5185 (${detail})`);
     } finally {
       setIsChecking(false);
     }
   };
 
   // Called when user stops dragging / panning / zooming on the Map
-  const handleRegionChangeComplete = (newRegion: Region) => {
+  const handleRegionChangeComplete = async (newRegion: Region) => {
     setRegion(newRegion);
-    checkPinpointServiceability(newRegion.latitude, newRegion.longitude);
+    setIsChecking(true);
+    let detectedPincode = '';
+
+    try {
+      const geocode = await ExpoLocation.reverseGeocodeAsync({
+        latitude: newRegion.latitude,
+        longitude: newRegion.longitude,
+      });
+
+      if (geocode && geocode.length > 0 && geocode[0].postalCode) {
+        detectedPincode = geocode[0].postalCode.trim();
+        setPincode(detectedPincode);
+      } else {
+        setPincode('');
+      }
+    } catch {
+      setPincode('');
+    }
+
+    checkPinpointServiceability(newRegion.latitude, newRegion.longitude, detectedPincode);
   };
 
   // Select a Saved Address from the chip list
@@ -375,7 +409,12 @@ export function MapPinPickerModal() {
                         placeholderTextColor={colors.textMuted}
                         keyboardType="number-pad"
                         value={pincode}
-                        onChangeText={setPincode}
+                        onChangeText={(val) => {
+                          setPincode(val);
+                          if (val.trim().length === 6) {
+                            checkPinpointServiceability(region.latitude, region.longitude, val.trim());
+                          }
+                        }}
                       />
                     </View>
                   </View>

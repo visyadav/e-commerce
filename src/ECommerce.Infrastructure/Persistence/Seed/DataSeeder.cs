@@ -47,6 +47,7 @@ public class DataSeeder(
             await SeedCategoriesAsync();
             await SeedBrandsAsync();
             await SeedMenuItemsAsync();
+            await SeedServiceableAreasAsync();
             await context.SaveChangesAsync();
 
             logger.LogInformation("Database seeding completed successfully");
@@ -376,5 +377,27 @@ public class DataSeeder(
         await context.MenuItems.AddRangeAsync(customerMenuItems);
 
         logger.LogInformation("Seeded menu items for Admin and Customer roles");
+    }
+
+    private async Task SeedServiceableAreasAsync()
+    {
+        if (!await context.ServiceableAreas.AnyAsync(a => a.Pincode == "201309"))
+        {
+            context.ServiceableAreas.Add(new ServiceableArea
+            {
+                Id = Guid.NewGuid(),
+                Name = "Sector 62 Hub - Noida",
+                City = "Noida",
+                State = "Uttar Pradesh",
+                Pincode = "201309",
+                Latitude = 28.6280,
+                Longitude = 77.3649,
+                RadiusInKm = 5.0,
+                IsActive = true,
+                CutoffTime = new TimeSpan(23, 59, 0),
+                CreatedAt = DateTime.UtcNow
+            });
+            logger.LogInformation("Seeded ServiceableArea for pincode 201309");
+        }
     }
 }
