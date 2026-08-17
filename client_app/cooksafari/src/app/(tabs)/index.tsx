@@ -26,7 +26,7 @@ const CATEGORIES = [
   { id: 'all', name: 'All Items', icon: 'apps-outline' },
   { id: 'milk', name: 'Fresh Milk', icon: 'nutrition-outline' },
   { id: 'paneer', name: 'Paneer & Butter', icon: 'cube-outline' },
-  { id: 'curd', name: 'Curd & Dahi', icon: 'bowl-outline' },
+  { id: 'curd', name: 'Curd & Dahi', icon: 'restaurant-outline' },
   { id: 'vegan', name: 'Plant Based', icon: 'leaf-outline' },
 ];
 

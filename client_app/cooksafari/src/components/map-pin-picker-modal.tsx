@@ -604,6 +604,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
     gap: 4,
   },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+  },
   savedScroll: {
     gap: spacing.xs,
     paddingVertical: 4,
