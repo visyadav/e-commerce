@@ -4,9 +4,6 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Ensure Web API listens on 0.0.0.0:5185 for mobile devices & local network
-builder.WebHost.UseUrls("http://0.0.0.0:5185");
-
 // Add Serilog
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
