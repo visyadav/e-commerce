@@ -157,6 +157,155 @@ public class AuthService : IAuthService
         return ApiResponse<AuthResponse>.SuccessResponse(response, "Token refreshed successfully.");
     }
 
+    public async Task<ApiResponse<AuthResponse>> RegisterCustomerAsync(CustomerRegisterRequest request, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation($"Checking customer exist or not for phone number {request.PhoneNumber}");
+        
+        // Check phone number uniqueness
+        var existingPhoneUser = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber, cancellationToken);
+        if (existingPhoneUser != null)
+        {
+            _logger.LogWarning($"User with phone number {request.PhoneNumber} already exists.");
+            return ApiResponse<AuthResponse>.FailureResponse("User with this phone number already exists.", ["Phone number already in use."]);
+        }
+
+        // Check email uniqueness if email provided
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var existingEmailUser = await _userManager.FindByEmailAsync(request.Email);
+            if (existingEmailUser != null)
+            {
+                return ApiResponse<AuthResponse>.FailureResponse("User with this email already exists.", ["Email already in use."]);
+            }
+        }
+
+        var user = _mapper.Map<ApplicationUser>(request);
+
+        var result = await _userManager.CreateAsync(user, request.Password);
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            return ApiResponse<AuthResponse>.FailureResponse("Customer registration failed.", errors);
+        }
+
+        // Assign default Customer role
+        if (!await _roleManager.RoleExistsAsync(AppConstants.Roles.Customer))
+        {
+            await _roleManager.CreateAsync(new IdentityRole(AppConstants.Roles.Customer));
+        }
+        await _userManager.AddToRoleAsync(user, AppConstants.Roles.Customer);
+
+        return await GenerateAuthResponseAsync(user, cancellationToken);
+    }
+
+    public async Task<ApiResponse<AuthResponse>> LoginCustomerAsync(CustomerLoginRequest request, CancellationToken cancellationToken = default)
+    {
+        // Find user by Phone Number, Email, or UserName
+        var user = await _userManager.Users.FirstOrDefaultAsync(u =>
+            u.PhoneNumber == request.Identifier ||
+            u.Email == request.Identifier ||
+            u.UserName == request.Identifier, cancellationToken);
+
+        if (user == null || !user.IsActive)
+        {
+            return ApiResponse<AuthResponse>.FailureResponse("Invalid phone/email or password, or user is inactive.", ["Authentication failed."]);
+        }
+
+        var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
+        if (!isPasswordValid)
+        {
+            return ApiResponse<AuthResponse>.FailureResponse("Invalid phone/email or password.", ["Authentication failed."]);
+        }
+
+        // Update last login
+        user.LastLoginAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(user);
+
+        return await GenerateAuthResponseAsync(user, cancellationToken);
+    }
+
+    public async Task<ApiResponse<AuthResponse>> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation($"Processing external login for provider: {request.Provider}");
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return ApiResponse<AuthResponse>.FailureResponse("Email is required for social authentication.", ["Invalid payload"]);
+        }
+
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user == null)
+        {
+            user = new ApplicationUser
+            {
+                UserName = request.Email,
+                Email = request.Email,
+                FirstName = request.FirstName ?? "Social",
+                LastName = request.LastName ?? "User",
+                EmailConfirmed = true,
+                IsActive = true
+            };
+
+            var createResult = await _userManager.CreateAsync(user);
+            if (!createResult.Succeeded)
+            {
+                return ApiResponse<AuthResponse>.FailureResponse("Failed to create customer account from social login.", createResult.Errors.Select(e => e.Description).ToList());
+            }
+
+            if (!await _roleManager.RoleExistsAsync(AppConstants.Roles.Customer))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(AppConstants.Roles.Customer));
+            }
+            await _userManager.AddToRoleAsync(user, AppConstants.Roles.Customer);
+        }
+
+        user.LastLoginAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(user);
+
+        return await GenerateAuthResponseAsync(user, cancellationToken);
+    }
+
+    public async Task<ApiResponse<AuthResponse>> GetMeAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null || !user.IsActive)
+        {
+            return ApiResponse<AuthResponse>.FailureResponse("User not found or inactive.");
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var response = new AuthResponse
+        {
+            AccessToken = string.Empty,
+            RefreshToken = string.Empty,
+            AccessTokenExpiration = DateTime.UtcNow,
+            Email = user.Email ?? user.PhoneNumber ?? string.Empty,
+            FullName = user.FullName,
+            Roles = [.. roles],
+            ThemeColor = user.ThemeColor
+        };
+
+        return ApiResponse<AuthResponse>.SuccessResponse(response, "User details retrieved.");
+    }
+
+    public async Task<ApiResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return ApiResponse.FailureResponse("User not found.");
+        }
+
+        var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            return ApiResponse.FailureResponse("Password change failed.", errors);
+        }
+
+        return ApiResponse.SuccessResponse("Password changed successfully.");
+    }
+
     private async Task<ApiResponse<AuthResponse>> GenerateAuthResponseAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         var roles = await _userManager.GetRolesAsync(user);

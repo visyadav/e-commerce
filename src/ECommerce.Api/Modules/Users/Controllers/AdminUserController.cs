@@ -8,15 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ECommerce.Api.Modules.Users.Controllers;
 
-public class AdminUserController : BaseApiController
+public class AdminUserController(IAdminUserService adminUserService) : BaseApiController
 {
-    private readonly IAdminUserService _adminUserService;
-
-    public AdminUserController(IAdminUserService adminUserService)
-    {
-        _adminUserService = adminUserService;
-    }
-
     [HttpGet]
     [HasPermission("Users", "Read")]
     [ProducesResponseType(typeof(PagedResponse<AdminUserDto>), StatusCodes.Status200OK)]
@@ -26,7 +19,7 @@ public class AdminUserController : BaseApiController
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var response = await _adminUserService.GetAllUsersAsync(searchTerm, pageNumber, pageSize, cancellationToken);
+        var response = await adminUserService.GetAllUsersAsync(searchTerm, pageNumber, pageSize, cancellationToken);
         return Ok(response);
     }
 
@@ -36,7 +29,7 @@ public class AdminUserController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ToggleUserStatus(string id, [FromBody] ToggleUserStatusRequest request, CancellationToken cancellationToken)
     {
-        var response = await _adminUserService.ToggleUserStatusAsync(id, request.IsActive, CurrentUserId ?? "System", cancellationToken);
+        var response = await adminUserService.ToggleUserStatusAsync(id, request.IsActive, CurrentUserId ?? "System", cancellationToken);
         return Ok(response);
     }
 
@@ -47,7 +40,7 @@ public class AdminUserController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateAdminUserRequest request, CancellationToken cancellationToken)
     {
-        var response = await _adminUserService.UpdateUserAsync(id, request, CurrentUserId ?? "System", cancellationToken);
+        var response = await adminUserService.UpdateUserAsync(id, request, CurrentUserId ?? "System", cancellationToken);
         return Ok(response);
     }
 
@@ -57,7 +50,7 @@ public class AdminUserController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(string id, CancellationToken cancellationToken)
     {
-        var response = await _adminUserService.GetUserByIdAsync(id, cancellationToken);
+        var response = await adminUserService.GetUserByIdAsync(id, cancellationToken);
         return Ok(response);
     }
 
@@ -67,7 +60,7 @@ public class AdminUserController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateUser([FromBody] CreateAdminUserRequest request, CancellationToken cancellationToken)
     {
-        var response = await _adminUserService.CreateUserAsync(request, CurrentUserId ?? "System", cancellationToken);
+        var response = await adminUserService.CreateUserAsync(request, CurrentUserId ?? "System", cancellationToken);
         return Ok(response);
     }
 }
