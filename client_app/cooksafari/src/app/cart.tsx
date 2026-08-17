@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,13 +15,18 @@ import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { colors, typography, borderRadius, spacing } from '@/theme';
 import { useCartStore } from '@/store/cart-store';
+import { useAuthStore } from '@/store/auth-store';
 import { useLocationStore } from '@/store/location-store';
 import { formatImageUrl } from '@/services/api/product-service';
+
+import { clientCouponService, ClientCouponDto } from '@/services/api/coupon-service';
 
 export default function CartScreen() {
   const router = useRouter();
   const [couponCode, setCouponCode] = useState('');
+  const [activeCoupons, setActiveCoupons] = useState<ClientCouponDto[]>([]);
 
+  const { user } = useAuthStore();
   const { currentLocation, openPickerModal } = useLocationStore();
   const {
     items,
@@ -48,14 +53,22 @@ export default function CartScreen() {
   const packagingFee = getPackagingFee();
   const grandTotal = getGrandTotal();
 
-  const handleApplyCoupon = (codeToApply?: string) => {
+  useEffect(() => {
+    clientCouponService.getActiveCoupons().then((res) => {
+      if (res.success && res.data) {
+        setActiveCoupons(res.data);
+      }
+    });
+  }, []);
+
+  const handleApplyCoupon = async (codeToApply?: string) => {
     const code = codeToApply || couponCode;
     if (!code) {
       Alert.alert('Coupon Code Required', 'Please enter a coupon code.');
       return;
     }
-    const res = applyCoupon(code);
-    Alert.alert(res.success ? 'Coupon Applied! 🎉' : 'Coupon Error', res.message);
+    const res = await applyCoupon(code, user?.id);
+    Alert.alert(res.success ? 'Coupon Applied! 🎉' : 'Coupon Validation', res.message);
     if (res.success) setCouponCode('');
   };
 
@@ -240,20 +253,37 @@ export default function CartScreen() {
 
           {/* Quick Coupons */}
           <View style={styles.quickCouponsRow}>
-            <TouchableOpacity
-              style={styles.couponPill}
-              onPress={() => handleApplyCoupon('COOK30')}
-            >
-              <Text style={styles.couponPillCode}>COOK30</Text>
-              <Text style={styles.couponPillDesc}>30% OFF</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.couponPill}
-              onPress={() => handleApplyCoupon('FIRST50')}
-            >
-              <Text style={styles.couponPillCode}>FIRST50</Text>
-              <Text style={styles.couponPillDesc}>₹50 OFF</Text>
-            </TouchableOpacity>
+            {activeCoupons.length > 0 ? (
+              activeCoupons.slice(0, 3).map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  style={styles.couponPill}
+                  onPress={() => handleApplyCoupon(c.code)}
+                >
+                  <Text style={styles.couponPillCode}>{c.code}</Text>
+                  <Text style={styles.couponPillDesc}>
+                    {c.discountPercentage}% OFF{c.productName ? ` (${c.productName})` : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.couponPill}
+                  onPress={() => handleApplyCoupon('COOK30')}
+                >
+                  <Text style={styles.couponPillCode}>COOK30</Text>
+                  <Text style={styles.couponPillDesc}>30% OFF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.couponPill}
+                  onPress={() => handleApplyCoupon('WELCOME50')}
+                >
+                  <Text style={styles.couponPillCode}>WELCOME50</Text>
+                  <Text style={styles.couponPillDesc}>10% OFF</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 

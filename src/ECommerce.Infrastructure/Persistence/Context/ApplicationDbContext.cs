@@ -22,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
     public DbSet<Coupon> Coupons => Set<Coupon>();
+    public DbSet<CouponUsageLog> CouponUsageLogs => Set<CouponUsageLog>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Domain.Entities.Payment> Payments => Set<Domain.Entities.Payment>();
     public DbSet<InventoryRecord> InventoryRecords => Set<InventoryRecord>();

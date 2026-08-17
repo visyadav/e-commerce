@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { cartService } from '@/services/api/cart-service';
+import { clientCouponService, ApplyCouponRequest } from '@/services/api/coupon-service';
 
 export interface CartProduct {
   id: string;
@@ -28,7 +29,7 @@ interface CartStore {
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   clearCart: () => void;
-  applyCoupon: (code: string) => { success: boolean; message: string };
+  applyCoupon: (code: string, userId?: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
 
   // Computed totals
@@ -109,19 +110,42 @@ export const useCartStore = create<CartStore>((set, get) => ({
     cartService.clearCart().catch(() => {});
   },
 
-  applyCoupon: (code: string) => {
+  applyCoupon: async (code: string, userId?: string) => {
     const clean = code.trim().toUpperCase();
-    if (clean === 'COOK30' || clean === 'FRESH30') {
-      const subtotal = get().getSubtotal();
-      const disc = Math.min(Math.round(subtotal * 0.3), 100);
-      set({ appliedCoupon: clean, discountAmount: disc });
-      return { success: true, message: `Coupon ${clean} applied! You saved ₹${disc}` };
-    } else if (clean === 'FIRST50') {
-      const disc = 50;
-      set({ appliedCoupon: clean, discountAmount: disc });
-      return { success: true, message: `Coupon FIRST50 applied! You saved ₹50` };
+    const itemList = Object.values(get().items);
+
+    if (itemList.length === 0) {
+      return { success: false, message: 'Your cart is empty.' };
     }
-    return { success: false, message: 'Invalid coupon code. Try COOK30 or FIRST50' };
+
+    const payload: ApplyCouponRequest = {
+      code: clean,
+      userId,
+      items: itemList.map(({ product, quantity }) => ({
+        productId: product.id,
+        unitPrice: product.price,
+        originalPrice: product.originalPrice,
+        quantity,
+      })),
+    };
+
+    try {
+      const res = await clientCouponService.applyCoupon(payload);
+      if (res.success && res.data && res.data.isValid) {
+        set({
+          appliedCoupon: clean,
+          discountAmount: res.data.discountAmount,
+        });
+        return { success: true, message: res.data.message };
+      } else {
+        return {
+          success: false,
+          message: res.data?.message || res.message || 'Failed to apply coupon.',
+        };
+      }
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Error validating coupon.' };
+    }
   },
 
   removeCoupon: () => {

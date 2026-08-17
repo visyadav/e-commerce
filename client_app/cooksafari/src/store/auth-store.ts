@@ -3,6 +3,7 @@ import { clientAuthService } from '@/services/api/auth-service';
 import { apiClient } from '@/services/api/api-client';
 
 export interface UserSession {
+  id?: string;
   phoneNumber: string;
   fullName: string;
   token: string;

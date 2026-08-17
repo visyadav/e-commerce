@@ -27,11 +27,40 @@ public class DataSeeder(
                         ALTER TABLE [ecom].[UserAddresses] ADD [Latitude] float NOT NULL DEFAULT 0.0;
                         ALTER TABLE [ecom].[UserAddresses] ADD [Longitude] float NOT NULL DEFAULT 0.0;
                     END
+
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Coupons]') AND name = 'ProductId')
+                    BEGIN
+                        ALTER TABLE [Coupons] ADD [ProductId] uniqueidentifier NULL;
+                        ALTER TABLE [Coupons] ADD [CategoryId] uniqueidentifier NULL;
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Coupons]') AND name = 'MaxUsagePerUser')
+                    BEGIN
+                        ALTER TABLE [Coupons] ADD [MaxUsagePerUser] int NOT NULL DEFAULT 1;
+                    END
+
+                    IF OBJECT_ID(N'[CouponUsageLogs]') IS NULL
+                    BEGIN
+                        CREATE TABLE [CouponUsageLogs] (
+                            [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+                            [CouponId] uniqueidentifier NOT NULL,
+                            [UserId] nvarchar(450) NOT NULL,
+                            [OrderId] uniqueidentifier NULL,
+                            [DiscountAmount] decimal(18,2) NOT NULL,
+                            [UsedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+                            [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+                            [CreatedBy] nvarchar(max) NULL,
+                            [UpdatedAt] datetime2 NULL,
+                            [UpdatedBy] nvarchar(max) NULL,
+                            [IsDeleted] bit NOT NULL DEFAULT 0,
+                            [DeletedAt] datetime2 NULL
+                        );
+                    END
                 ");
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Column addition for UserAddresses bypassed or already exists.");
+                logger.LogWarning(ex, "Dynamic column additions bypassed or already exist.");
             }
 
             try
@@ -48,6 +77,7 @@ public class DataSeeder(
             //await SeedBrandsAsync();
             await SeedMenuItemsAsync();
             await SeedServiceableAreasAsync();
+            await SeedCouponsAsync();
             await context.SaveChangesAsync();
 
             logger.LogInformation("Database seeding completed successfully");
@@ -398,6 +428,62 @@ public class DataSeeder(
                 CreatedAt = DateTime.UtcNow
             });
             logger.LogInformation("Seeded ServiceableArea for pincode 201309");
+        }
+    }
+
+    private async Task SeedCouponsAsync()
+    {
+        if (!await context.Coupons.AnyAsync())
+        {
+            var now = DateTime.UtcNow;
+            var coupons = new List<Coupon>
+            {
+                new Coupon
+                {
+                    Id = Guid.NewGuid(),
+                    Code = "WELCOME50",
+                    Description = "Flat 10% OFF on all full-price items for new customers",
+                    DiscountPercentage = 10,
+                    MaxDiscountAmount = 50,
+                    MinOrderAmount = 200,
+                    MaxUsageCount = 5000,
+                    StartDate = now.AddDays(-1),
+                    EndDate = now.AddDays(180),
+                    IsActive = true,
+                    CreatedAt = now
+                },
+                new Coupon
+                {
+                    Id = Guid.NewGuid(),
+                    Code = "COOK30",
+                    Description = "30% OFF up to ₹100 on non-discounted grocery items",
+                    DiscountPercentage = 30,
+                    MaxDiscountAmount = 100,
+                    MinOrderAmount = 300,
+                    MaxUsageCount = 10000,
+                    StartDate = now.AddDays(-1),
+                    EndDate = now.AddDays(180),
+                    IsActive = true,
+                    CreatedAt = now
+                },
+                new Coupon
+                {
+                    Id = Guid.NewGuid(),
+                    Code = "FRESH100",
+                    Description = "Save ₹100 on orders over ₹500",
+                    DiscountPercentage = 20,
+                    MaxDiscountAmount = 100,
+                    MinOrderAmount = 500,
+                    MaxUsageCount = 2000,
+                    StartDate = now.AddDays(-1),
+                    EndDate = now.AddDays(180),
+                    IsActive = true,
+                    CreatedAt = now
+                }
+            };
+
+            await context.Coupons.AddRangeAsync(coupons);
+            logger.LogInformation("Seeded initial active promotional coupons");
         }
     }
 }

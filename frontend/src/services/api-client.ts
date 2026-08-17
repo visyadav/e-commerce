@@ -151,4 +151,7 @@ export const apiClient = {
 
   delete: <T>(endpoint: string, headers?: Record<string, string>) =>
     request<T>(endpoint, { method: "DELETE", headers }),
+
+  patch: <T>(endpoint: string, body?: unknown, headers?: Record<string, string>) =>
+    request<T>(endpoint, { method: "PATCH", body, headers }),
 };
