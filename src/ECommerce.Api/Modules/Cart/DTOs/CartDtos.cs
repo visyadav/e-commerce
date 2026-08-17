@@ -10,6 +10,8 @@ public class CartItemDto
     public string ProductSku { get; set; } = string.Empty;
     public string? ProductImageUrl { get; set; }
     public decimal UnitPrice { get; set; }
+    public decimal? OriginalPrice { get; set; }
+    public string Unit { get; set; } = "unit";
     public int Quantity { get; set; }
     public decimal TotalPrice => UnitPrice * Quantity;
 }

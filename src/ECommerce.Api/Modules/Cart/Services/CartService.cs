@@ -131,6 +131,7 @@ public class CartService : ICartService
     {
         var items = await _unitOfWork.Repository<CartItem>().Query()
             .Include(c => c.Product)
+                .ThenInclude(p => p.Images)
             .Where(c => c.UserId == userId)
             .ToListAsync(cancellationToken);
 

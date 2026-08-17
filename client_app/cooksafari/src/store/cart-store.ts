@@ -207,12 +207,14 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
         res.data.items.forEach((item) => {
           if (item.productId) {
+            const price = item.unitPrice || item.productPrice || 0;
             serverItemsMap[item.productId] = {
               product: {
                 id: item.productId,
                 name: item.productName || 'Product',
-                price: item.productPrice,
-                unit: 'item',
+                price: price,
+                originalPrice: item.originalPrice,
+                unit: item.unit || 'unit',
                 imageUrl: formatImageUrl(item.productImageUrl || ''),
               },
               quantity: item.quantity,

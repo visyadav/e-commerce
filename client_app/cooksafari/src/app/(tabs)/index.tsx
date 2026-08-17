@@ -312,9 +312,6 @@ export default function HomeScreen() {
         {/* 6. Most Popular Products Component (Bottom Section) */}
         <MostPopularProducts />
       </ScrollView>
-
-      {/* Interactive Map Pinpoint Picker Modal */}
-      <MapPinPickerModal />
     </SafeAreaView>
   );
 }

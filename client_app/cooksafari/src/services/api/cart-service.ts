@@ -5,8 +5,11 @@ export interface CartItemDto {
   id: string;
   productId: string;
   productName: string;
-  productPrice: number;
-  productImageUrl: string;
+  productPrice?: number;
+  unitPrice: number;
+  originalPrice?: number;
+  unit?: string;
+  productImageUrl?: string;
   quantity: number;
   totalPrice: number;
 }

@@ -87,7 +87,11 @@ function LiquidGlassTabBar(props: BottomTabBarProps) {
   );
 }
 
+import { useCartStore } from '@/store/cart-store';
+
 export default function TabLayout() {
+  const totalCartItems = useCartStore((s) => s.getTotalItems());
+
   return (
     <View style={{ flex: 1 }}>
       <Tabs
@@ -119,6 +123,41 @@ export default function TabLayout() {
                 size={22}
                 color={color}
               />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="cart"
+          options={{
+            title: 'Cart',
+            tabBarIcon: ({ color, focused }) => (
+              <View style={{ position: 'relative' }}>
+                <Ionicons
+                  name={focused ? 'cart' : 'cart-outline'}
+                  size={22}
+                  color={color}
+                />
+                {totalCartItems > 0 && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: -4,
+                      right: -8,
+                      backgroundColor: colors.secondary,
+                      borderRadius: 9,
+                      minWidth: 16,
+                      height: 16,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      paddingHorizontal: 3,
+                    }}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>
+                      {totalCartItems}
+                    </Text>
+                  </View>
+                )}
+              </View>
             ),
           }}
         />
