@@ -36,6 +36,8 @@ export default function HomeScreen() {
 
   const { currentLocation, openPickerModal } = useLocationStore();
 
+  const isServiceable = currentLocation ? currentLocation.isServiceable : true;
+
   const filteredProducts =
     selectedCategory === 'all'
       ? PRODUCTS_DATA
@@ -57,33 +59,35 @@ export default function HomeScreen() {
           <View
             style={[
               styles.locationIconBox,
-              !currentLocation.isServiceable && styles.unserviceableIconBox,
+              !isServiceable && styles.unserviceableIconBox,
             ]}
           >
             <Ionicons
-              name={currentLocation.isServiceable ? 'location' : 'alert-circle'}
+              name={isServiceable ? 'location' : 'alert-circle'}
               size={18}
-              color={currentLocation.isServiceable ? colors.primary : colors.danger}
+              color={isServiceable ? colors.primary : colors.danger}
             />
           </View>
 
           <View style={styles.locationTextContainer}>
             <View style={styles.locationTitleRow}>
               <Text style={styles.locationType}>
-                Deliver to {currentLocation.title}
+                Deliver to {currentLocation?.title || 'Detecting Location...'}
               </Text>
               <Ionicons name="chevron-down" size={14} color={colors.textPrimary} />
             </View>
             <Text
               style={[
                 styles.locationAddress,
-                !currentLocation.isServiceable && styles.unserviceableText,
+                !isServiceable && styles.unserviceableText,
               ]}
               numberOfLines={1}
             >
-              {currentLocation.isServiceable
-                ? currentLocation.address
-                : `⚠️ ${currentLocation.title} - Outside Delivery Zone (${currentLocation.distanceInKm} KM)`}
+              {currentLocation
+                ? isServiceable
+                  ? currentLocation.address
+                  : `⚠️ ${currentLocation.title} - Outside Delivery Zone (${currentLocation.distanceInKm} KM)`
+                : 'Fetching delivery serviceability from API...'}
             </Text>
           </View>
         </TouchableOpacity>
@@ -95,7 +99,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Non-Serviceable Warning Banner */}
-      {!currentLocation.isServiceable && (
+      {currentLocation && !currentLocation.isServiceable && (
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={openPickerModal}
@@ -106,7 +110,8 @@ export default function HomeScreen() {
             <Text style={styles.warningTitle}>Location Outside Delivery Zone</Text>
           </View>
           <Text style={styles.warningSub}>
-            CookSafari currently delivers only within 5 KM of Sector 62, Noida. {currentLocation.title} is {currentLocation.distanceInKm} KM away.
+            {currentLocation.message ||
+              `CookSafari currently delivers only within 5 KM of our active hubs. ${currentLocation.title} is ${currentLocation.distanceInKm} KM away.`}
           </Text>
           <View style={styles.switchLocationPill}>
             <Text style={styles.switchLocationText}>Switch Delivery Address →</Text>

@@ -119,7 +119,7 @@ export function AllProductsGrid() {
             }
             style={styles.sortPill}
           >
-            <Feather name="arrow-up-down" size={13} color={colors.primary} />
+            <Feather name="sliders" size={13} color={colors.primary} />
             <Text style={styles.sortPillText}>
               {sortOption === 'relevance'
                 ? 'Popular'
@@ -152,7 +152,7 @@ export function AllProductsGrid() {
         </View>
       ) : (
         <View style={styles.emptyContainer}>
-          <Ionicons name="search-discontent" size={48} color={colors.textMuted} />
+          <Ionicons name="search-outline" size={48} color={colors.textMuted} />
           <Text style={styles.emptyTitle}>No products found</Text>
           <Text style={styles.emptySub}>
             Try searching for a different item or select another category.

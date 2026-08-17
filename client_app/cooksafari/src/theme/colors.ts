@@ -15,6 +15,8 @@ export const colors = {
   surface: '#FFFFFF',        // Pure White Surface
   surfaceSubtle: '#F1F5F9',   // Light Muted Grey Surface
   cardBorder: '#E2E8F0',
+  border: '#E2E8F0',
+  shadow: '#000000',
 
   // Text Colors
   textPrimary: '#0F172A',    // Deep Slate Heading

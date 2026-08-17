@@ -17,6 +17,7 @@ export function AddressPickerModal() {
   const {
     currentLocation,
     savedLocations,
+    activeHubs,
     isPickerModalOpen,
     closePickerModal,
     setLocation,
@@ -28,15 +29,12 @@ export function AddressPickerModal() {
 
   const handleAddNewAddress = () => {
     if (!inputAddress) return;
-    // Check if input contains sector 79 to simulate out-of-range lat/lng
-    const isSec79 = inputAddress.includes('79');
-    const lat = isSec79 ? 28.5670 : 28.6280;
-    const lng = isSec79 ? 77.3910 : 77.3649;
-
-    checkCustomLocation(inputAddress, inputPincode || '201309', lat, lng);
+    checkCustomLocation(inputAddress, inputPincode);
     setInputAddress('');
     setInputPincode('');
   };
+
+  const primaryHub = activeHubs.length > 0 ? activeHubs[0] : null;
 
   return (
     <Modal
@@ -62,71 +60,81 @@ export function AddressPickerModal() {
 
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
                 {/* Active Hub Info Banner */}
-                <View style={styles.hubInfoBanner}>
-                  <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
-                  <Text style={styles.hubInfoText}>
-                    CookSafari Hub: <Text style={styles.boldText}>Sector 62, Noida</Text> (5.0 KM Delivery Radius)
-                  </Text>
-                </View>
+                {primaryHub && (
+                  <View style={styles.hubInfoBanner}>
+                    <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
+                    <Text style={styles.hubInfoText}>
+                      Active Hub: <Text style={styles.boldText}>{primaryHub.name}</Text> ({primaryHub.radiusInKm} KM Delivery Radius)
+                    </Text>
+                  </View>
+                )}
 
-                {/* Saved Locations List */}
-                <Text style={styles.sectionLabel}>SAVED LOCATIONS</Text>
-                {savedLocations.map((item) => {
-                  const isSelected = currentLocation.id === item.id;
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      activeOpacity={0.8}
-                      onPress={() => setLocation(item)}
-                      style={[
-                        styles.locationCard,
-                        isSelected && styles.selectedLocationCard,
-                        !item.isServiceable && styles.unserviceableCard,
-                      ]}
-                    >
-                      <View style={styles.cardLeft}>
-                        <View
-                          style={[
-                            styles.radioCircle,
-                            isSelected && styles.radioCircleActive,
-                          ]}
-                        >
-                          {isSelected && <View style={styles.radioInner} />}
-                        </View>
-
-                        <View style={styles.locationTextGroup}>
-                          <View style={styles.cardTitleRow}>
-                            <Text style={styles.cardTitle}>{item.title}</Text>
-
-                            {/* Serviceability Badge */}
-                            {item.isServiceable ? (
-                              <View style={styles.badgeServiceable}>
-                                <Ionicons name="checkmark-circle" size={12} color={colors.primary} />
-                                <Text style={styles.badgeServiceableText}>Serviceable ({item.distanceInKm} KM)</Text>
-                              </View>
-                            ) : (
-                              <View style={styles.badgeUnserviceable}>
-                                <Ionicons name="alert-circle" size={12} color={colors.danger} />
-                                <Text style={styles.badgeUnserviceableText}>Outside Zone ({item.distanceInKm} KM)</Text>
-                              </View>
-                            )}
+                {/* Saved / Available Delivery Hubs List */}
+                <Text style={styles.sectionLabel}>ACTIVE DELIVERY ZONES</Text>
+                {savedLocations.length === 0 ? (
+                  <Text style={styles.emptyText}>Fetching active delivery zones from server...</Text>
+                ) : (
+                  savedLocations.map((item) => {
+                    const isSelected = currentLocation?.id === item.id;
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        activeOpacity={0.8}
+                        onPress={() => setLocation(item)}
+                        style={[
+                          styles.locationCard,
+                          isSelected && styles.selectedLocationCard,
+                          !item.isServiceable && styles.unserviceableCard,
+                        ]}
+                      >
+                        <View style={styles.cardLeft}>
+                          <View
+                            style={[
+                              styles.radioCircle,
+                              isSelected && styles.radioCircleActive,
+                            ]}
+                          >
+                            {isSelected && <View style={styles.radioInner} />}
                           </View>
 
-                          <Text style={styles.addressText} numberOfLines={2}>
-                            {item.address}
-                          </Text>
+                          <View style={styles.locationTextGroup}>
+                            <View style={styles.cardTitleRow}>
+                              <Text style={styles.cardTitle}>{item.title}</Text>
+
+                              {/* Serviceability Badge */}
+                              {item.isServiceable ? (
+                                <View style={styles.badgeServiceable}>
+                                  <Ionicons name="checkmark-circle" size={12} color={colors.primary} />
+                                  <Text style={styles.badgeServiceableText}>
+                                    Serviceable {item.distanceInKm > 0 ? `(${item.distanceInKm} KM)` : ''}
+                                  </Text>
+                                </View>
+                              ) : (
+                                <View style={styles.badgeUnserviceable}>
+                                  <Ionicons name="alert-circle" size={12} color={colors.danger} />
+                                  <Text style={styles.badgeUnserviceableText}>
+                                    Outside Zone {item.distanceInKm > 0 ? `(${item.distanceInKm} KM)` : ''}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+
+                            <Text style={styles.addressText} numberOfLines={2}>
+                              {item.address}
+                            </Text>
+                          </View>
                         </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
 
                 {/* Add Custom Location Input */}
-                <Text style={[styles.sectionLabel, { marginTop: spacing.md }]}>ENTER ANOTHER AREA</Text>
+                <Text style={[styles.sectionLabel, { marginTop: spacing.md }]}>CHECK CUSTOM ADDRESS</Text>
                 <View style={styles.inputContainer}>
                   <TextInput
                     style={styles.addressInput}
-                    placeholder="Enter Sector or Street (e.g. Sector 62 or Sector 79)..."
+                    placeholder="Enter Sector or Address (e.g. Sector 62 or Sector 79)..."
                     placeholderTextColor={colors.textMuted}
                     value={inputAddress}
                     onChangeText={setInputAddress}
@@ -143,7 +151,7 @@ export function AddressPickerModal() {
                     onPress={handleAddNewAddress}
                     style={styles.checkButton}
                   >
-                    <Text style={styles.checkButtonText}>Check Area</Text>
+                    <Text style={styles.checkButtonText}>Check Serviceability API</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -219,6 +227,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.textMuted,
     letterSpacing: 0.8,
+  },
+  emptyText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textMuted,
+    marginVertical: spacing.xs,
   },
   locationCard: {
     flexDirection: 'row',
