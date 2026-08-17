@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, borderRadius, spacing } from '@/theme';
 import { productService, ClientProductDto } from '@/services/api/product-service';
+import { useCartStore } from '@/store/cart-store';
+import { useAuthStore } from '@/store/auth-store';
 
 interface PopularCardProps {
   product: ClientProductDto;
@@ -18,7 +20,34 @@ interface PopularCardProps {
 }
 
 function PopularProductCard({ product, rank }: PopularCardProps) {
-  const [quantity, setQuantity] = useState(0);
+  const { getItemQuantity, addItem, updateQuantity } = useCartStore();
+  const { isAuthenticated, openLoginModal } = useAuthStore();
+
+  const quantity = getItemQuantity(product.id);
+
+  const cartProduct = {
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    originalPrice: product.originalPrice,
+    unit: product.unit,
+    imageUrl: product.imageUrl,
+  };
+
+  const handleIncrement = () => {
+    if (!isAuthenticated) {
+      openLoginModal({
+        product: cartProduct,
+        quantity: 1,
+      });
+      return;
+    }
+    addItem(cartProduct, 1);
+  };
+
+  const handleDecrement = () => {
+    updateQuantity(product.id, quantity - 1);
+  };
 
   return (
     <View style={styles.popularCard}>
@@ -66,7 +95,7 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
           {quantity === 0 ? (
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => setQuantity(1)}
+              onPress={handleIncrement}
               style={styles.addBtn}
             >
               <Text style={styles.addBtnText}>ADD</Text>
@@ -75,14 +104,14 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
           ) : (
             <View style={styles.stepperBox}>
               <TouchableOpacity
-                onPress={() => setQuantity((q) => (q > 0 ? q - 1 : 0))}
+                onPress={handleDecrement}
                 style={styles.stepBtn}
               >
                 <Ionicons name="remove" size={12} color={colors.textWhite} />
               </TouchableOpacity>
               <Text style={styles.stepVal}>{quantity}</Text>
               <TouchableOpacity
-                onPress={() => setQuantity((q) => q + 1)}
+                onPress={handleIncrement}
                 style={styles.stepBtn}
               >
                 <Ionicons name="add" size={12} color={colors.textWhite} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   StatusBar,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -25,6 +26,7 @@ export default function CartScreen() {
   const router = useRouter();
   const [couponCode, setCouponCode] = useState('');
   const [activeCoupons, setActiveCoupons] = useState<ClientCouponDto[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { user } = useAuthStore();
   const { currentLocation, openPickerModal } = useLocationStore();
@@ -43,7 +45,34 @@ export default function CartScreen() {
     getDeliveryFee,
     getPackagingFee,
     getGrandTotal,
+    syncWithServer,
   } = useCartStore();
+
+  const fetchActiveCoupons = async () => {
+    try {
+      const res = await clientCouponService.getActiveCoupons();
+      if (res.success && res.data) {
+        setActiveCoupons(res.data);
+      }
+    } catch {
+      setActiveCoupons([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveCoupons();
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([syncWithServer(), fetchActiveCoupons()]);
+    } catch (err) {
+      console.warn('Error refreshing cart:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const itemList = Object.values(items);
   const subtotal = getSubtotal();
@@ -140,7 +169,18 @@ export default function CartScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
         {/* 2. Delivery Address Banner */}
         <TouchableOpacity
           activeOpacity={0.8}

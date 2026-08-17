@@ -10,6 +10,7 @@ import {
   StatusBar,
   Dimensions,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -17,54 +18,88 @@ import { colors, typography, spacing, borderRadius } from '@/theme';
 import { ProductCard } from '@/components/product-card';
 import { MostPopularProducts } from '@/components/most-popular-products';
 import { useLocationStore } from '@/store/location-store';
+import { useCartStore } from '@/store/cart-store';
 import { MapPinPickerModal } from '@/components/map-pin-picker-modal';
 import { productService, ClientProductDto } from '@/services/api/product-service';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - spacing.lg * 2 - spacing.md) / 2;
 
-const CATEGORIES = [
-  { id: 'all', name: 'All Items', icon: 'apps-outline' },
-  { id: 'milk', name: 'Fresh Milk', icon: 'nutrition-outline' },
-  { id: 'paneer', name: 'Paneer & Butter', icon: 'cube-outline' },
-  { id: 'curd', name: 'Curd & Dahi', icon: 'restaurant-outline' },
-  { id: 'vegan', name: 'Plant Based', icon: 'leaf-outline' },
-];
-
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [categories, setCategories] = useState<{ id: string; name: string; icon?: string }[]>([
+    { id: 'all', name: 'All Items', icon: 'apps-outline' },
+  ]);
   const [products, setProducts] = useState<ClientProductDto[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { currentLocation, openPickerModal } = useLocationStore();
   const isServiceable = currentLocation ? currentLocation.isServiceable : true;
 
-  // Fetch real products from ClientApp API
-  useEffect(() => {
-    async function loadProducts() {
-      try {
-        setIsLoadingProducts(true);
-        const res = await productService.getProducts({
-          categorySlug: selectedCategory,
-          search: searchQuery,
-        });
-
-        if (res.success && res.data) {
-          setProducts(res.data);
-        } else {
-          setProducts([]);
-        }
-      } catch (err) {
-        console.warn('Error fetching client products:', err);
-        setProducts([]);
-      } finally {
-        setIsLoadingProducts(false);
+  const loadCategories = async () => {
+    try {
+      const res = await productService.getCategories();
+      if (res.success && res.data && res.data.length > 0) {
+        const apiCats = res.data.map((c) => ({
+          id: c.slug,
+          name: c.name,
+          icon: 'nutrition-outline',
+        }));
+        setCategories([{ id: 'all', name: 'All Items', icon: 'apps-outline' }, ...apiCats]);
       }
+    } catch (err) {
+      console.warn('Error fetching categories on home screen:', err);
     }
+  };
 
+  const loadProducts = async () => {
+    try {
+      setIsLoadingProducts(true);
+      const res = await productService.getProducts({
+        categorySlug: selectedCategory,
+        search: searchQuery,
+      });
+
+      if (res.success && res.data) {
+        setProducts(res.data);
+      } else {
+        setProducts([]);
+      }
+    } catch (err) {
+      console.warn('Error fetching client products:', err);
+      setProducts([]);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  // 1. Fetch Categories on mount
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  // 2. Fetch products when category or search changes
+  useEffect(() => {
     loadProducts();
   }, [selectedCategory, searchQuery]);
+
+  // 3. Pull to Refresh handler
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        loadCategories(),
+        loadProducts(),
+        useCartStore.getState().syncWithServer(),
+      ]);
+    } catch (err) {
+      console.warn('Error refreshing home screen:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -160,6 +195,14 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* 3. Hero Promo Banner */}
         <View style={styles.heroBanner}>
@@ -190,7 +233,7 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryScroll}
           >
-            {CATEGORIES.map((cat) => {
+            {categories.map((cat) => {
               const isSelected = selectedCategory === cat.id;
               return (
                 <TouchableOpacity

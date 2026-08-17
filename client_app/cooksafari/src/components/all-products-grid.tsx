@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { colors, typography, borderRadius, spacing } from '@/theme';
@@ -31,54 +32,67 @@ export function AllProductsGrid() {
   const [isLoadingInitial, setIsLoadingInitial] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadCategories = async () => {
+    try {
+      const res = await productService.getCategories();
+      if (res.success && res.data && res.data.length > 0) {
+        const apiCats = res.data.map((c) => ({ id: c.slug, name: c.name }));
+        setCategories([{ id: 'all', name: 'All Items' }, ...apiCats]);
+      }
+    } catch (err) {
+      console.warn('Error fetching categories:', err);
+    }
+  };
+
+  const fetchInitialProducts = async () => {
+    try {
+      setIsLoadingInitial(true);
+      const res = await productService.getProducts({
+        categorySlug: selectedCategory,
+        search: searchQuery,
+        pageNumber: 1,
+        pageSize: 10,
+      });
+
+      if (res.success && res.data) {
+        setProducts(res.data);
+        setHasMore(res.data.length === 10);
+      } else {
+        setProducts([]);
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.warn('Error fetching initial products:', err);
+      setProducts([]);
+      setHasMore(false);
+    } finally {
+      setIsLoadingInitial(false);
+    }
+  };
 
   // 1. Fetch Categories from API
   useEffect(() => {
-    async function loadCategories() {
-      try {
-        const res = await productService.getCategories();
-        if (res.success && res.data && res.data.length > 0) {
-          const apiCats = res.data.map((c) => ({ id: c.slug, name: c.name }));
-          setCategories([{ id: 'all', name: 'All Items' }, ...apiCats]);
-        }
-      } catch (err) {
-        console.warn('Error fetching categories:', err);
-      }
-    }
-
     loadCategories();
   }, []);
 
   // 2. Fetch Initial 10 Products when Category or Search changes
   useEffect(() => {
-    async function fetchInitialProducts() {
-      try {
-        setIsLoadingInitial(true);
-        const res = await productService.getProducts({
-          categorySlug: selectedCategory,
-          search: searchQuery,
-          pageNumber: 1,
-          pageSize: 10,
-        });
-
-        if (res.success && res.data) {
-          setProducts(res.data);
-          setHasMore(res.data.length === 10);
-        } else {
-          setProducts([]);
-          setHasMore(false);
-        }
-      } catch (err) {
-        console.warn('Error fetching initial products:', err);
-        setProducts([]);
-        setHasMore(false);
-      } finally {
-        setIsLoadingInitial(false);
-      }
-    }
-
     fetchInitialProducts();
   }, [selectedCategory, searchQuery]);
+
+  // Pull to refresh handler
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchInitialProducts(), loadCategories()]);
+    } catch (err) {
+      console.warn('Error refreshing product grid:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // 3. Load 5 More Products on Scroll
   const handleLoadMore = async () => {
@@ -138,6 +152,14 @@ export function AllProductsGrid() {
       onScroll={handleScroll}
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+        />
+      }
     >
       {/* 1. Search Bar */}
       <View style={styles.searchSection}>

@@ -284,7 +284,19 @@ export default function ProductsPage() {
                 <tr key={product.id} className="border-b last:border-0 hover:bg-muted/50">
                   <td className="px-6 py-4 font-medium">{product.name}</td>
                   <td className="px-6 py-4 text-muted-foreground">{product.sku}</td>
-                  <td className="px-6 py-4 font-medium">${product.price.toFixed(2)}</td>
+                  <td className="px-6 py-4 font-medium">
+                    <div className="flex flex-col">
+                      <span>₹{product.price.toFixed(2)}</span>
+                      {product.compareAtPrice && product.compareAtPrice > product.price ? (
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="line-through text-muted-foreground">₹{product.compareAtPrice.toFixed(2)}</span>
+                          <span className="text-emerald-600 font-semibold">
+                            ({Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)}% OFF)
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-muted-foreground">{product.stockQuantity}</td>
                   <td className="px-6 py-4 text-muted-foreground">{product.categoryName}</td>
                   <td className="px-6 py-4 text-muted-foreground">{product.brandName || "-"}</td>
@@ -401,34 +413,53 @@ export default function ProductsPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">Price</label>
+                <label className="text-sm font-medium">Selling Price (₹)</label>
                 <Input
                   type="number"
                   step="0.01"
                   required
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g. 80"
                 />
+                <p className="text-xs text-muted-foreground">Final price customer pays.</p>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">Compare At Price</label>
+                <label className="text-sm font-medium">Compare At Price / MRP (₹)</label>
                 <Input
                   type="number"
                   step="0.01"
                   value={formData.compareAtPrice}
                   onChange={(e) => setFormData({ ...formData, compareAtPrice: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g. 100"
                 />
+                <p className="text-xs text-muted-foreground">Original price before discount.</p>
               </div>
 
+              {formData.compareAtPrice > formData.price && formData.price > 0 && (
+                <div className="col-span-2 p-3 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-800 text-sm flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-medium">
+                    <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded">
+                      {Math.round(((formData.compareAtPrice - formData.price) / formData.compareAtPrice) * 100)}% OFF
+                    </span>
+                    <span>Product Discount Live Preview</span>
+                  </div>
+                  <span className="text-xs text-emerald-700">
+                    Crossed Out: <span className="line-through">₹{formData.compareAtPrice}</span> → Selling: ₹{formData.price} (Save ₹{(formData.compareAtPrice - formData.price).toFixed(2)})
+                  </span>
+                </div>
+              )}
+
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">Cost Price</label>
+                <label className="text-sm font-medium">Cost Price (₹)</label>
                 <Input
                   type="number"
                   step="0.01"
                   value={formData.costPrice}
                   onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) || 0 })}
                 />
+                <p className="text-xs text-muted-foreground">Internal product cost (optional).</p>
               </div>
 
               <div className="flex flex-col gap-2 col-span-2">

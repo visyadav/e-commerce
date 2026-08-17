@@ -7,12 +7,15 @@ import { LocationProvider } from '@/providers/location-provider';
 import { OTAUpdateProvider } from '@/providers/ota-update-provider';
 import { MobileLoginModal } from '@/components/mobile-login-modal';
 
+import { useAuthStore } from '@/store/auth-store';
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
+    useAuthStore.getState().initAuth();
     SplashScreen.hideAsync();
   }, []);
 

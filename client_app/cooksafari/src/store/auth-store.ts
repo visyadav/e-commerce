@@ -1,6 +1,10 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clientAuthService } from '@/services/api/auth-service';
 import { apiClient } from '@/services/api/api-client';
+import { useCartStore } from '@/store/cart-store';
 
 export interface UserSession {
   id?: string;
@@ -34,65 +38,146 @@ interface AuthStore {
   closeLoginModal: () => void;
   loginWithMobile: (phoneNumber: string, otp?: string, fullName?: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
+  initAuth: () => void;
 }
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
-  isAuthenticated: false,
-  token: null,
-  user: null,
-  isLoginModalOpen: false,
-  pendingCartAction: null,
+// In-memory fallback map for environments where native storage is unavailable
+const memoryStorageMap = new Map<string, string>();
 
-  openLoginModal: (pendingAction) => {
-    set({ isLoginModalOpen: true, pendingCartAction: pendingAction || null });
-  },
-
-  closeLoginModal: () => {
-    set({ isLoginModalOpen: false, pendingCartAction: null });
-  },
-
-  loginWithMobile: async (phoneNumber: string, otp?: string, fullName?: string) => {
+const safeStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
     try {
-      const res = await clientAuthService.mobileLogin({
-        phoneNumber,
-        otp,
-        fullName,
-      });
-
-      if (res.success && res.data) {
-        const token = res.data.accessToken;
-        apiClient.setToken(token);
-
-        const session: UserSession = {
-          phoneNumber,
-          fullName: res.data.fullName || `User ${phoneNumber.slice(-4)}`,
-          token,
-        };
-
-        set({
-          isAuthenticated: true,
-          token,
-          user: session,
-          isLoginModalOpen: false,
-        });
-
-        return { success: true, message: 'Logged in successfully!' };
-      } else {
-        return { success: false, message: res.message || 'Login failed' };
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(name);
       }
-    } catch (err: any) {
-      return { success: false, message: err?.message || 'Login error occurred' };
+      if (AsyncStorage && typeof AsyncStorage.getItem === 'function') {
+        return await AsyncStorage.getItem(name);
+      }
+      return memoryStorageMap.get(name) || null;
+    } catch {
+      return memoryStorageMap.get(name) || null;
     }
   },
+  setItem: async (name: string, value: string): Promise<void> => {
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(name, value);
+        return;
+      }
+      if (AsyncStorage && typeof AsyncStorage.setItem === 'function') {
+        await AsyncStorage.setItem(name, value);
+        return;
+      }
+      memoryStorageMap.set(name, value);
+    } catch {
+      memoryStorageMap.set(name, value);
+    }
+  },
+  removeItem: async (name: string): Promise<void> => {
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(name);
+        return;
+      }
+      if (AsyncStorage && typeof AsyncStorage.removeItem === 'function') {
+        await AsyncStorage.removeItem(name);
+        return;
+      }
+      memoryStorageMap.delete(name);
+    } catch {
+      memoryStorageMap.delete(name);
+    }
+  },
+};
 
-  logout: () => {
-    apiClient.setToken(null);
-    set({
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set, get) => ({
       isAuthenticated: false,
       token: null,
       user: null,
       isLoginModalOpen: false,
       pendingCartAction: null,
-    });
-  },
-}));
+
+      openLoginModal: (pendingAction) => {
+        set({ isLoginModalOpen: true, pendingCartAction: pendingAction || null });
+      },
+
+      closeLoginModal: () => {
+        set({ isLoginModalOpen: false, pendingCartAction: null });
+      },
+
+      loginWithMobile: async (phoneNumber: string, otp?: string, fullName?: string) => {
+        try {
+          const res = await clientAuthService.mobileLogin({
+            phoneNumber,
+            otp,
+            fullName,
+          });
+
+          if (res.success && res.data) {
+            const token = res.data.accessToken;
+            apiClient.setToken(token);
+
+            const session: UserSession = {
+              phoneNumber,
+              fullName: res.data.fullName || `User ${phoneNumber.slice(-4)}`,
+              token,
+            };
+
+            set({
+              isAuthenticated: true,
+              token,
+              user: session,
+              isLoginModalOpen: false,
+            });
+
+            // Automatically sync cart from backend DB on login
+            useCartStore.getState().syncWithServer();
+
+            return { success: true, message: 'Logged in successfully!' };
+          } else {
+            return { success: false, message: res.message || 'Login failed' };
+          }
+        } catch (err: any) {
+          return { success: false, message: err?.message || 'Login error occurred' };
+        }
+      },
+
+      logout: () => {
+        apiClient.setToken(null);
+        set({
+          isAuthenticated: false,
+          token: null,
+          user: null,
+          isLoginModalOpen: false,
+          pendingCartAction: null,
+        });
+        useCartStore.getState().clearCart();
+      },
+
+      initAuth: () => {
+        const token = get().token;
+        if (token) {
+          apiClient.setToken(token);
+          useCartStore.getState().syncWithServer();
+        }
+      },
+    }),
+    {
+      name: 'auth-storage',
+      storage: createJSONStorage(() => safeStorage),
+      partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
+        token: state.token,
+        user: state.user,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.token) {
+          apiClient.setToken(state.token);
+          useCartStore.getState().syncWithServer();
+        }
+      },
+    }
+  )
+);

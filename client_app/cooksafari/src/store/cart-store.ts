@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { cartService } from '@/services/api/cart-service';
 import { clientCouponService, ApplyCouponRequest } from '@/services/api/coupon-service';
+import { formatImageUrl } from '@/services/api/product-service';
 
 export interface CartProduct {
   id: string;
@@ -199,7 +200,38 @@ export const useCartStore = create<CartStore>((set, get) => ({
   syncWithServer: async () => {
     try {
       set({ isLoadingServer: true });
-      await cartService.getCart();
+      const res = await cartService.getCart();
+      if (res.success && res.data && Array.isArray(res.data.items)) {
+        const localItems = get().items;
+        const serverItemsMap: Record<string, CartItem> = {};
+
+        res.data.items.forEach((item) => {
+          if (item.productId) {
+            serverItemsMap[item.productId] = {
+              product: {
+                id: item.productId,
+                name: item.productName || 'Product',
+                price: item.productPrice,
+                unit: 'item',
+                imageUrl: formatImageUrl(item.productImageUrl || ''),
+              },
+              quantity: item.quantity,
+            };
+          }
+        });
+
+        // Merge any local guest items that weren't on server yet
+        for (const pid of Object.keys(localItems)) {
+          if (!serverItemsMap[pid]) {
+            const guestItem = localItems[pid];
+            serverItemsMap[pid] = guestItem;
+            // Push guest item to server DB
+            cartService.addToCart({ productId: pid, quantity: guestItem.quantity }).catch(() => {});
+          }
+        }
+
+        set({ items: serverItemsMap });
+      }
     } catch (err) {
       console.warn('Cart server sync notice:', err);
     } finally {
