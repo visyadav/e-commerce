@@ -116,6 +116,12 @@ public class ClientProductService : IClientProductService
             ? $"{Math.Round(((p.CompareAtPrice.Value - p.Price) / p.CompareAtPrice.Value) * 100)}% OFF"
             : null;
 
+        var allImgs = p.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).ToList();
+        if (allImgs.Count == 0)
+        {
+            allImgs.Add(primaryImg);
+        }
+
         return new ClientProductDto
         {
             Id = p.Id,
@@ -126,6 +132,7 @@ public class ClientProductService : IClientProductService
             OriginalPrice = p.CompareAtPrice,
             Unit = string.IsNullOrWhiteSpace(p.Dimensions) ? "500 ml" : p.Dimensions,
             ImageUrl = primaryImg,
+            ImageUrls = allImgs,
             Badge = p.IsFeatured ? "Daily Essential" : null,
             DiscountPercentage = discountPct,
             Rating = 4.8,

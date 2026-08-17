@@ -14,12 +14,15 @@ import { productService, ClientProductDto } from '@/services/api/product-service
 import { useCartStore } from '@/store/cart-store';
 import { useAuthStore } from '@/store/auth-store';
 
+import { useRouter } from 'expo-router';
+
 interface PopularCardProps {
   product: ClientProductDto;
   rank: number;
 }
 
 function PopularProductCard({ product, rank }: PopularCardProps) {
+  const router = useRouter();
   const { getItemQuantity, addItem, updateQuantity } = useCartStore();
   const { isAuthenticated, openLoginModal } = useAuthStore();
 
@@ -50,7 +53,11 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
   };
 
   return (
-    <View style={styles.popularCard}>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.popularCard}
+      onPress={() => router.push(`/product/${product.id}`)}
+    >
       {/* Rank Badge Tag */}
       <View style={styles.rankBadge}>
         <Ionicons name="flame" size={12} color="#FFFFFF" />
@@ -120,7 +127,7 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
           )}
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

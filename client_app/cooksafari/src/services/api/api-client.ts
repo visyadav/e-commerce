@@ -44,8 +44,30 @@ export class ApiClient {
 
       clearTimeout(timeoutId);
 
-      const json = await response.json();
-      return json as ApiResponse<T>;
+      const text = await response.text();
+      let json: any = null;
+      if (text) {
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = null;
+        }
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          return {
+            success: false,
+            message: 'Session expired. Please login again.',
+          };
+        }
+        return {
+          success: false,
+          message: json?.message || `Request failed with status ${response.status}`,
+        };
+      }
+
+      return (json || { success: true }) as ApiResponse<T>;
     } catch (error: any) {
       clearTimeout(timeoutId);
       console.warn(`[ApiClient Warning] Request failed for ${url}:`, error?.message || error);

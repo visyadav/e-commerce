@@ -10,6 +10,7 @@ import {
   Alert,
   StatusBar,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -125,20 +126,18 @@ export default function CartScreen() {
       Alert.alert('Empty Cart', 'Please add products to your cart before ordering.');
       return;
     }
-
-    Alert.alert(
-      '🚀 Order Placed!',
-      `Thank you! Your order of ₹${grandTotal} has been placed successfully.\nDelivery in 10-15 minutes.`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            clearCart();
-            router.push('/(tabs)/orders');
-          },
-        },
-      ]
-    );
+    if (currentLocation && !currentLocation.isServiceable) {
+      Alert.alert(
+        'Location Unserviceable ⚠️',
+        currentLocation.message || 'Delivery is not available at this pincode. Please tap CHANGE to select a serviceable delivery address.',
+        [
+          { text: 'CHANGE ADDRESS', onPress: openPickerModal },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+    router.push('/checkout');
   };
 
   if (itemList.length === 0) {
@@ -193,6 +192,7 @@ export default function CartScreen() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -226,12 +226,24 @@ export default function CartScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* ETA Bar */}
-        {/* <View style={styles.etaCard}>
-          <Ionicons name="flash" size={16} color="#D97706" />
-          <Text style={styles.etaTitle}>Delivery in 10 minutes</Text>
-          <Text style={styles.etaTag}>SUPERFAST</Text>
-        </View> */}
+        {/* Location Serviceability Alert Banner */}
+        {currentLocation && !currentLocation.isServiceable ? (
+          <View style={styles.unserviceableAlert}>
+            <Ionicons name="alert-circle" size={20} color="#DC2626" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.unserviceableTitle}>Location Unserviceable</Text>
+              <Text style={styles.unserviceableSub}>
+                {currentLocation.message || `Delivery is not available at pincode ${currentLocation.pincode || ''}. Please tap CHANGE to select a serviceable location.`}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.etaCard}>
+            <Ionicons name="flash" size={16} color="#D97706" />
+            <Text style={styles.etaTitle}>Delivery in 10 minutes</Text>
+            <Text style={styles.etaTag}>SUPERFAST</Text>
+          </View>
+        )}
 
         {/* 3A. Standard Products Section (Eligible for Cart Coupons) */}
         {standardItems.length > 0 && (
@@ -491,12 +503,22 @@ export default function CartScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.placeOrderBtn}
+          style={[
+            styles.placeOrderBtn,
+            currentLocation && !currentLocation.isServiceable && styles.disabledBtn,
+          ]}
           activeOpacity={0.88}
           onPress={handlePlaceOrder}
+          disabled={!!currentLocation && !currentLocation.isServiceable}
         >
-          <Text style={styles.placeOrderBtnText}>Place Order</Text>
-          <Ionicons name="arrow-forward" size={18} color={colors.textWhite} />
+          <Text style={styles.placeOrderBtnText}>
+            {currentLocation && !currentLocation.isServiceable
+              ? 'LOCATION UNSERVICEABLE'
+              : 'PROCEED TO CHECKOUT'}
+          </Text>
+          {currentLocation?.isServiceable !== false && (
+            <Ionicons name="arrow-forward" size={18} color={colors.textWhite} />
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -546,7 +568,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.md,
     gap: spacing.md,
-    paddingBottom: 90,
+    paddingBottom: spacing.md,
   },
   addressBanner: {
     flexDirection: 'row',
@@ -904,10 +926,6 @@ const styles = StyleSheet.create({
     color: '#065F46',
   },
   bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
@@ -916,6 +934,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: Platform.OS === 'ios' ? 84 : 64,
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
@@ -944,6 +963,30 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     gap: spacing.xs,
+  },
+  disabledBtn: {
+    backgroundColor: '#9CA3AF',
+    opacity: 0.85,
+  },
+  unserviceableAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    gap: spacing.sm,
+  },
+  unserviceableTitle: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: '800',
+    color: '#991B1B',
+  },
+  unserviceableSub: {
+    fontSize: 11,
+    color: '#B91C1C',
+    marginTop: 1,
   },
   placeOrderBtnText: {
     color: colors.textWhite,

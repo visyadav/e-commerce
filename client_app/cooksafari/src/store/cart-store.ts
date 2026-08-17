@@ -14,6 +14,7 @@ export interface CartProduct {
 }
 
 export interface CartItem {
+  cartItemId?: string;
   product: CartProduct;
   quantity: number;
 }
@@ -64,6 +65,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       const newItems = {
         ...state.items,
         [product.id]: {
+          ...existing,
           product,
           quantity: newQty,
         },
@@ -76,34 +78,60 @@ export const useCartStore = create<CartStore>((set, get) => ({
   },
 
   updateQuantity: (productId: string, quantity: number) => {
-    set((state) => {
-      if (quantity <= 0) {
-        const newItems = { ...state.items };
-        delete newItems[productId];
-        return { items: newItems };
-      }
+    const existing = get().items[productId];
+    if (!existing) return;
 
-      const existing = state.items[productId];
-      if (!existing) return state;
+    if (quantity <= 0) {
+      get().removeItem(productId);
+      return;
+    }
 
-      return {
-        items: {
-          ...state.items,
-          [productId]: {
-            ...existing,
-            quantity,
-          },
+    // 1. Immediately update UI state with zero latency
+    set((state) => ({
+      items: {
+        ...state.items,
+        [productId]: {
+          ...existing,
+          quantity,
         },
-      };
-    });
+      },
+    }));
+
+    // 2. Sync with backend API
+    if (existing.cartItemId) {
+      cartService.updateQuantity(existing.cartItemId, { quantity }).catch((err) => {
+        console.warn('Backend update quantity sync warning:', err);
+      });
+    } else {
+      const diff = quantity - existing.quantity;
+      if (diff !== 0) {
+        cartService.addToCart({ productId, quantity: diff }).catch(() => {});
+      }
+    }
+
+    // 3. Re-calculate coupon discount if coupon is active
+    const appliedCoupon = get().appliedCoupon;
+    if (appliedCoupon) {
+      get().applyCoupon(appliedCoupon);
+    }
   },
 
   removeItem: (productId: string) => {
+    const existing = get().items[productId];
     set((state) => {
       const newItems = { ...state.items };
       delete newItems[productId];
       return { items: newItems };
     });
+
+    if (existing?.cartItemId) {
+      cartService.removeFromCart(existing.cartItemId).catch(() => {});
+    }
+
+    const appliedCoupon = get().appliedCoupon;
+    if (appliedCoupon) {
+      get().applyCoupon(appliedCoupon);
+    }
   },
 
   clearCart: () => {
@@ -209,6 +237,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
           if (item.productId) {
             const price = item.unitPrice || item.productPrice || 0;
             serverItemsMap[item.productId] = {
+              cartItemId: item.id,
               product: {
                 id: item.productId,
                 name: item.productName || 'Product',

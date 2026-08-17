@@ -103,17 +103,30 @@ export const useLocationStore = create<LocationState>((set, get) => ({
       const response = await addressService.getAddresses();
       if (response.success && response.data) {
         const addresses = response.data;
-        const mappedItems: LocationItem[] = addresses.map((a) => ({
-          id: `saved-${a.id}`,
-          title: `${a.label} (${a.houseNo || a.street.split(',')[0]})`,
-          address: `${a.houseNo ? a.houseNo + ', ' : ''}${a.street}, ${a.city}`,
-          pincode: a.zipCode,
-          latitude: a.latitude || HUB_LAT,
-          longitude: a.longitude || HUB_LNG,
-          isServiceable: true,
-          distanceInKm: 0.0,
-          source: 'manual',
-        }));
+        const mappedItems: LocationItem[] = await Promise.all(
+          addresses.map(async (a) => {
+            const checkRes = await locationService.checkServiceability({
+              latitude: a.latitude || HUB_LAT,
+              longitude: a.longitude || HUB_LNG,
+              sectorOrAddress: a.street,
+              pincode: a.zipCode,
+            });
+            const apiData = checkRes.success ? checkRes.data : null;
+
+            return {
+              id: `saved-${a.id}`,
+              title: `${a.label} (${a.houseNo || a.street.split(',')[0]})`,
+              address: `${a.houseNo ? a.houseNo + ', ' : ''}${a.street}, ${a.city}`,
+              pincode: a.zipCode,
+              latitude: a.latitude || HUB_LAT,
+              longitude: a.longitude || HUB_LNG,
+              isServiceable: apiData ? apiData.isServiceable : false,
+              distanceInKm: apiData?.distanceInKm ?? 0.0,
+              message: apiData?.message || (apiData?.isServiceable ? 'Serviceable' : `Delivery not available at pincode ${a.zipCode}`),
+              source: 'manual' as const,
+            };
+          })
+        );
 
         set({ savedLocations: mappedItems });
         return mappedItems;

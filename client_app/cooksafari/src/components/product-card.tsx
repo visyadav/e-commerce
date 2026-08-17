@@ -32,6 +32,8 @@ export interface ProductCardProps {
 import { useCartStore } from '@/store/cart-store';
 import { useAuthStore } from '@/store/auth-store';
 
+import { useRouter } from 'expo-router';
+
 export function ProductCard({
   id,
   name,
@@ -49,6 +51,7 @@ export function ProductCard({
   width,
   style,
 }: ProductCardProps) {
+  const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(false);
   const [imageError, setImageError] = useState(false);
   const fallbackImage = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80';
@@ -56,6 +59,14 @@ export function ProductCard({
   const { getItemQuantity, addItem, updateQuantity } = useCartStore();
   const { isAuthenticated, openLoginModal } = useAuthStore();
   const quantity = getItemQuantity(id);
+
+  const handleCardPress = () => {
+    if (onPress) {
+      onPress();
+    } else {
+      router.push(`/product/${id}`);
+    }
+  };
 
   // Calculate discount percentage automatically if originalPrice is passed
   const computedDiscount = discountPercentage || (
@@ -84,7 +95,7 @@ export function ProductCard({
   return (
     <TouchableOpacity
       activeOpacity={0.92}
-      onPress={onPress}
+      onPress={handleCardPress}
       style={[styles.card, width ? { width } : null, style]}
     >
       {/* 1. Top Image Canvas */}

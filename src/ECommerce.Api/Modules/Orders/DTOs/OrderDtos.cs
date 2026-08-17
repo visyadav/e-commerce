@@ -36,6 +36,9 @@ public class CreateOrderRequest
     public AddressDto? ShippingAddress { get; set; }
     public AddressDto? BillingAddress { get; set; }
 
+    public string? CouponCode { get; set; }
+    public string? PaymentMethod { get; set; } = "COD";
+
     [MaxLength(500)]
     public string? Notes { get; set; }
 }
@@ -62,6 +65,7 @@ public class OrderDto
     public decimal ShippingAmount { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal TotalAmount { get; set; }
+    public string? CouponCode { get; set; }
     public string? Notes { get; set; }
     public AddressDto? ShippingAddress { get; set; }
     public AddressDto? BillingAddress { get; set; }

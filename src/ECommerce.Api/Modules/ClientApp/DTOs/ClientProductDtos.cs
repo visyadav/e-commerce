@@ -19,6 +19,7 @@ public class ClientProductDto
     public decimal? OriginalPrice { get; set; }
     public string Unit { get; set; } = "500 ml";
     public string ImageUrl { get; set; } = string.Empty;
+    public List<string> ImageUrls { get; set; } = [];
     public string? Badge { get; set; }
     public string? DiscountPercentage { get; set; }
     public double Rating { get; set; } = 4.8;

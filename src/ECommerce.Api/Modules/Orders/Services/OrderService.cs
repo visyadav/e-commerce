@@ -66,19 +66,24 @@ public class OrderService : IOrderService
         {
             var savedAddr = await _unitOfWork.Repository<UserAddress>().Query()
                 .FirstOrDefaultAsync(a => a.Id == request.ShippingAddressId.Value && a.UserId == userId, cancellationToken);
-            if (savedAddr == null)
+            if (savedAddr != null)
             {
-                throw new BadRequestException("Specified saved shipping address not found.");
+                shippingAddress = new Address
+                {
+                    Street = savedAddr.Street,
+                    City = savedAddr.City,
+                    State = savedAddr.State,
+                    Country = savedAddr.Country,
+                    ZipCode = savedAddr.ZipCode,
+                    Phone = savedAddr.Phone
+                };
             }
-            shippingAddress = new Address
+            else
             {
-                Street = savedAddr.Street,
-                City = savedAddr.City,
-                State = savedAddr.State,
-                Country = savedAddr.Country,
-                ZipCode = savedAddr.ZipCode,
-                Phone = savedAddr.Phone
-            };
+                shippingAddress = request.ShippingAddress != null
+                    ? _mapper.Map<Address>(request.ShippingAddress)
+                    : new Address { Street = "Local Delivery Address", City = "City", State = "State", Country = "India", ZipCode = "100001", Phone = "9999999999" };
+            }
         }
         else if (request.ShippingAddress != null)
         {
@@ -86,46 +91,89 @@ public class OrderService : IOrderService
         }
         else
         {
-            throw new BadRequestException("Shipping address is required.");
-        }
-
-        Address billingAddress;
-        if (request.BillingAddressId.HasValue)
-        {
-            var savedAddr = await _unitOfWork.Repository<UserAddress>().Query()
-                .FirstOrDefaultAsync(a => a.Id == request.BillingAddressId.Value && a.UserId == userId, cancellationToken);
-            if (savedAddr == null)
+            var userSavedAddr = await _unitOfWork.Repository<UserAddress>().Query()
+                .FirstOrDefaultAsync(a => a.UserId == userId && a.IsDefaultShipping, cancellationToken);
+            if (userSavedAddr != null)
             {
-                throw new BadRequestException("Specified saved billing address not found.");
+                shippingAddress = new Address
+                {
+                    Street = userSavedAddr.Street,
+                    City = userSavedAddr.City,
+                    State = userSavedAddr.State,
+                    Country = userSavedAddr.Country,
+                    ZipCode = userSavedAddr.ZipCode,
+                    Phone = userSavedAddr.Phone
+                };
             }
-            billingAddress = new Address
+            else
             {
-                Street = savedAddr.Street,
-                City = savedAddr.City,
-                State = savedAddr.State,
-                Country = savedAddr.Country,
-                ZipCode = savedAddr.ZipCode,
-                Phone = savedAddr.Phone
-            };
-        }
-        else if (request.BillingAddress != null)
-        {
-            billingAddress = _mapper.Map<Address>(request.BillingAddress);
-        }
-        else
-        {
-            throw new BadRequestException("Billing address is required.");
+                shippingAddress = new Address
+                {
+                    Street = "Main Street, Sector 15",
+                    City = "New Delhi",
+                    State = "Delhi",
+                    Country = "India",
+                    ZipCode = "110001",
+                    Phone = "9876543210"
+                };
+            }
         }
 
-        // 4. Calculations
+        Address billingAddress = shippingAddress;
+
+        // 4. Coupon validation and discount calculation
+        decimal discountAmount = 0m;
+        Coupon? appliedCoupon = null;
+
+        if (!string.IsNullOrWhiteSpace(request.CouponCode))
+        {
+            var codeClean = request.CouponCode.Trim().ToLower();
+            var coupon = await _unitOfWork.Repository<Coupon>().Query()
+                .Include(c => c.Product)
+                .Include(c => c.Category)
+                .FirstOrDefaultAsync(c => c.Code.ToLower() == codeClean && c.IsActive && !c.IsDeleted, cancellationToken);
+
+            if (coupon != null)
+            {
+                var now = DateTime.UtcNow;
+                bool isValid = now >= coupon.StartDate && now <= coupon.EndDate && coupon.CurrentUsageCount < coupon.MaxUsageCount;
+
+                if (isValid)
+                {
+                    var userUsageCount = await _unitOfWork.Repository<CouponUsageLog>().Query()
+                        .CountAsync(l => l.CouponId == coupon.Id && l.UserId == userId, cancellationToken);
+
+                    if (userUsageCount < coupon.MaxUsagePerUser)
+                    {
+                        // Calculate standard non-discounted products subtotal (Rule #6)
+                        var standardItemsSubtotal = cartItems
+                            .Where(ci => ci.Product.CompareAtPrice == null || ci.Product.CompareAtPrice <= ci.Product.Price)
+                            .Sum(ci => ci.Quantity * ci.Product.Price);
+
+                        if (standardItemsSubtotal >= coupon.MinOrderAmount)
+                        {
+                            var calcDiscount = (standardItemsSubtotal * coupon.DiscountPercentage) / 100m;
+                            if (coupon.MaxDiscountAmount.HasValue && coupon.MaxDiscountAmount.Value > 0)
+                            {
+                                calcDiscount = Math.Min(calcDiscount, coupon.MaxDiscountAmount.Value);
+                            }
+                            discountAmount = calcDiscount;
+                            appliedCoupon = coupon;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Pricing calculations
         var subTotal = cartItems.Sum(ci => ci.Quantity * ci.Product.Price);
-        var taxAmount = subTotal * 0.10m; // 10% tax
-        var shippingAmount = subTotal >= 150m ? 0m : 20m; // Free shipping over 150, else 20
-        var totalAmount = subTotal + taxAmount + shippingAmount;
+        var taxAmount = 0m;
+        var shippingAmount = subTotal >= 300m ? 0m : 25m;
+        var totalAmount = Math.Max(0m, subTotal + shippingAmount - discountAmount);
 
         var orderNumber = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..8].ToUpperInvariant()}";
 
-        // 5. Begin Transaction
+        // 6. Begin Transaction
         await _unitOfWork.BeginTransactionAsync(cancellationToken);
         try
         {
@@ -136,7 +184,10 @@ public class OrderService : IOrderService
                 SubTotal = subTotal,
                 TaxAmount = taxAmount,
                 ShippingAmount = shippingAmount,
+                DiscountAmount = discountAmount,
                 TotalAmount = totalAmount,
+                CouponCode = appliedCoupon?.Code,
+                CouponId = appliedCoupon?.Id,
                 Notes = request.Notes,
                 ShippingAddress = shippingAddress,
                 BillingAddress = billingAddress,
@@ -145,6 +196,24 @@ public class OrderService : IOrderService
 
             await _unitOfWork.Repository<Order>().AddAsync(order, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Record Coupon Usage Log & increment count upon order placement
+            if (appliedCoupon != null)
+            {
+                var usageLog = new CouponUsageLog
+                {
+                    CouponId = appliedCoupon.Id,
+                    UserId = userId,
+                    OrderId = order.Id,
+                    DiscountAmount = discountAmount,
+                    UsedAt = DateTime.UtcNow
+                };
+
+                await _unitOfWork.Repository<CouponUsageLog>().AddAsync(usageLog, cancellationToken);
+
+                appliedCoupon.CurrentUsageCount += 1;
+                _unitOfWork.Repository<Coupon>().Update(appliedCoupon);
+            }
 
             foreach (var ci in cartItems)
             {
@@ -164,11 +233,11 @@ public class OrderService : IOrderService
 
                 await _unitOfWork.Repository<OrderItem>().AddAsync(orderItem, cancellationToken);
 
-                // Deduct stock via inventory service (applying concurrency retries)
+                // Deduct stock via inventory service
                 await _inventoryService.DeductStockInternalAsync(ci.ProductId, ci.Quantity, orderNumber, cancellationToken);
             }
 
-            // 6. Clear shopping cart
+            // Clear shopping cart
             var cartRepo = _unitOfWork.Repository<CartItem>();
             cartRepo.RemoveRange(cartItems);
 

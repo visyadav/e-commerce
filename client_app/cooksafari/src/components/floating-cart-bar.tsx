@@ -1,19 +1,23 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Animated } from 'react-native';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, borderRadius, spacing } from '@/theme';
 import { useCartStore } from '@/store/cart-store';
 
 export function FloatingCartBar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { getTotalItems, getGrandTotal, getSavings } = useCartStore();
 
   const totalItems = getTotalItems();
   const grandTotal = getGrandTotal();
   const savings = getSavings();
 
-  if (totalItems === 0) return null;
+  // Hide FloatingCartBar on Cart screen and Checkout screen to prevent duplicate "View Cart" bar
+  if (totalItems === 0 || pathname.includes('/cart') || pathname.includes('/checkout')) {
+    return null;
+  }
 
   return (
     <View style={styles.wrapper}>

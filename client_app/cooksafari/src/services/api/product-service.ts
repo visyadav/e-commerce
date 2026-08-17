@@ -19,6 +19,7 @@ export interface ClientProductDto {
   originalPrice?: number;
   unit: string;
   imageUrl: string;
+  imageUrls?: string[];
   badge?: string;
   discountPercentage?: string;
   rating?: number;
@@ -109,6 +110,9 @@ export const productService = {
     const res = await apiClient.get<ClientProductDto>(`/client/products/${id}`);
     if (res.success && res.data) {
       res.data.imageUrl = formatImageUrl(res.data.imageUrl);
+      if (res.data.imageUrls && Array.isArray(res.data.imageUrls)) {
+        res.data.imageUrls = res.data.imageUrls.map((img) => formatImageUrl(img));
+      }
     }
     return res;
   },
