@@ -16,6 +16,9 @@ export interface LocationItem {
   message?: string;
 }
 
+export const HUB_LAT = 28.6280;
+export const HUB_LNG = 77.3649;
+
 interface LocationState {
   currentLocation: LocationItem | null;
   activeHubs: ServiceableAreaDto[];

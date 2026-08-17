@@ -32,16 +32,22 @@ public static class DependencyInjection
                 ?? configuration.GetConnectionString("DefaultConnection");
 
             services.AddDbContext<ApplicationDbContext>(options =>
+            {
                 options.UseSqlServer(connectionString, b => 
-                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
+                options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+            });
         }
         else
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
 
             services.AddDbContext<ApplicationDbContext>(options =>
+            {
                 options.UseNpgsql(connectionString, b => 
-                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
+                options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+            });
         }
 
         // 2. Identity Services

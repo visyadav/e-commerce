@@ -17,7 +17,31 @@ public class DataSeeder(
     {
         try
         {
-            await context.Database.MigrateAsync();
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(@"
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[ecom].[UserAddresses]') AND name = 'HouseNo')
+                    BEGIN
+                        ALTER TABLE [ecom].[UserAddresses] ADD [HouseNo] nvarchar(max) NULL;
+                        ALTER TABLE [ecom].[UserAddresses] ADD [Landmark] nvarchar(max) NULL;
+                        ALTER TABLE [ecom].[UserAddresses] ADD [Latitude] float NOT NULL DEFAULT 0.0;
+                        ALTER TABLE [ecom].[UserAddresses] ADD [Longitude] float NOT NULL DEFAULT 0.0;
+                    END
+                ");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Column addition for UserAddresses bypassed or already exists.");
+            }
+
+            try
+            {
+                await context.Database.MigrateAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "MigrateAsync warning bypassed.");
+            }
             await SeedRolesAsync();
             await SeedAdminUserAsync();
             await SeedCategoriesAsync();

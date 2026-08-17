@@ -17,7 +17,7 @@ import { PRODUCTS_DATA } from '@/constants/products';
 import { ProductCard } from '@/components/product-card';
 import { MostPopularProducts } from '@/components/most-popular-products';
 import { useLocationStore } from '@/store/location-store';
-import { AddressPickerModal } from '@/components/address-picker-modal';
+import { MapPinPickerModal } from '@/components/map-pin-picker-modal';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - spacing.lg * 2 - spacing.md) / 2;
@@ -235,8 +235,8 @@ export default function HomeScreen() {
         <MostPopularProducts />
       </ScrollView>
 
-      {/* Address Picker Modal */}
-      <AddressPickerModal />
+      {/* Interactive Map Pinpoint Picker Modal */}
+      <MapPinPickerModal />
     </SafeAreaView>
   );
 }
