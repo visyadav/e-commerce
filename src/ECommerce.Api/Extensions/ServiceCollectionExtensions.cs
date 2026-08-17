@@ -20,6 +20,7 @@ using ECommerce.Api.Modules.Payments;
 using ECommerce.Api.Modules.Reviews;
 using ECommerce.Api.Modules.Users;
 using ECommerce.Api.Modules.Wishlist;
+using ECommerce.Api.Modules.ServiceableAreas;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -77,6 +78,7 @@ public static class ServiceCollectionExtensions
         services.AddAdminModule();
         services.AddNavigationModule();
         services.AddClientApp();
+        services.AddServiceableAreasModule();
 
         return services;
     }

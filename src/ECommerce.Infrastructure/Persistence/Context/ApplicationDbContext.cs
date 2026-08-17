@@ -32,6 +32,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UserMenuPermission> UserMenuPermissions => Set<UserMenuPermission>();
     public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
     public DbSet<UserHistory> UserHistories => Set<UserHistory>();
+    public DbSet<ServiceableArea> ServiceableAreas => Set<ServiceableArea>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -39,6 +40,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // Apply all configurations from this assembly
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Seed default Sector 62 Noida Hub
+        builder.Entity<ServiceableArea>().HasData(
+            new ServiceableArea
+            {
+                Id = Guid.Parse("7a9f4c3b-2e8d-4f1a-9b5c-3d7e1f4a8b2c"),
+                Name = "Sector 62 Hub - Noida",
+                City = "Noida",
+                State = "Uttar Pradesh",
+                Pincode = "201309",
+                Latitude = 28.6280,
+                Longitude = 77.3649,
+                RadiusInKm = 5.0,
+                IsActive = true,
+                CutoffTime = new TimeSpan(23, 59, 0),
+                CreatedAt = DateTime.UtcNow
+            }
+        );
 
         // Configure Address as an owned type for Order
         builder.Entity<Order>(entity =>

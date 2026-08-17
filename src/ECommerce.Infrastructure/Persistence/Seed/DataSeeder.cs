@@ -30,7 +30,7 @@ public class DataSeeder
     {
         try
         {
-            await _context.Database.EnsureCreatedAsync();
+            await _context.Database.MigrateAsync();
             await SeedRolesAsync();
             await SeedAdminUserAsync();
             await SeedCategoriesAsync();
@@ -140,6 +140,24 @@ public class DataSeeder
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Seeded missing 'User Management' menu item");
             }
+
+            var hasServiceableAreas = await _context.MenuItems.AnyAsync(m => m.Title == "Serviceable Areas");
+            if (!hasServiceableAreas)
+            {
+                var serviceableAreasMenu = new MenuItem
+                {
+                    Title = "Serviceable Areas",
+                    Icon = "MapPin",
+                    Url = "/admin/serviceable-areas",
+                    SortOrder = 12,
+                    Module = "ServiceableArea",
+                    AllowedRoles = $"{AppConstants.Roles.SuperAdmin},{AppConstants.Roles.Admin}"
+                };
+                await _context.MenuItems.AddAsync(serviceableAreasMenu);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Seeded missing 'Serviceable Areas' menu item");
+            }
+
             return;
         }
 
@@ -172,7 +190,15 @@ public class DataSeeder
                 new MenuItem { Title = "Brands", Icon = "branding_watermark", Url = "/admin/catalog/brands", SortOrder = 3, Module = "Catalog", AllowedRoles = adminRoles }
             ]
         };
-
+        var serviceableArea = new MenuItem()
+        {
+            Title = "Serviceable Areas",
+            Icon = "ServiceableAreas",
+            Url = "/admin/ServiceableArea",
+            SortOrder = 1,
+            Module = "ServiceableArea",
+            AllowedRoles = adminRoles
+        };
         var inventory = new MenuItem
         {
             Title = "Inventory",

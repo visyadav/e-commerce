@@ -16,6 +16,8 @@ import { colors, typography, spacing, borderRadius } from '@/theme';
 import { PRODUCTS_DATA } from '@/constants/products';
 import { ProductCard } from '@/components/product-card';
 import { MostPopularProducts } from '@/components/most-popular-products';
+import { useLocationStore } from '@/store/location-store';
+import { AddressPickerModal } from '@/components/address-picker-modal';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - spacing.lg * 2 - spacing.md) / 2;
@@ -32,6 +34,8 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
+  const { currentLocation, openPickerModal } = useLocationStore();
+
   const filteredProducts =
     selectedCategory === 'all'
       ? PRODUCTS_DATA
@@ -45,26 +49,70 @@ export default function HomeScreen() {
 
       {/* 1. Location & Header Bar */}
       <View style={styles.topHeader}>
-        <View style={styles.locationContainer}>
-          <View style={styles.locationIconBox}>
-            <Ionicons name="location" size={18} color={colors.primary} />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={openPickerModal}
+          style={styles.locationContainer}
+        >
+          <View
+            style={[
+              styles.locationIconBox,
+              !currentLocation.isServiceable && styles.unserviceableIconBox,
+            ]}
+          >
+            <Ionicons
+              name={currentLocation.isServiceable ? 'location' : 'alert-circle'}
+              size={18}
+              color={currentLocation.isServiceable ? colors.primary : colors.danger}
+            />
           </View>
+
           <View style={styles.locationTextContainer}>
             <View style={styles.locationTitleRow}>
-              <Text style={styles.locationType}>Deliver to Home</Text>
+              <Text style={styles.locationType}>
+                Deliver to {currentLocation.title}
+              </Text>
               <Ionicons name="chevron-down" size={14} color={colors.textPrimary} />
             </View>
-            <Text style={styles.locationAddress} numberOfLines={1}>
-              Flat 402, Green Meadows, Sector 62
+            <Text
+              style={[
+                styles.locationAddress,
+                !currentLocation.isServiceable && styles.unserviceableText,
+              ]}
+              numberOfLines={1}
+            >
+              {currentLocation.isServiceable
+                ? currentLocation.address
+                : `⚠️ ${currentLocation.title} - Outside Delivery Zone (${currentLocation.distanceInKm} KM)`}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Profile Avatar Button */}
         <TouchableOpacity style={styles.profileBtn}>
           <Ionicons name="person-circle-outline" size={36} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
+
+      {/* Non-Serviceable Warning Banner */}
+      {!currentLocation.isServiceable && (
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={openPickerModal}
+          style={styles.warningBanner}
+        >
+          <View style={styles.warningHeader}>
+            <Ionicons name="warning" size={20} color="#991B1B" />
+            <Text style={styles.warningTitle}>Location Outside Delivery Zone</Text>
+          </View>
+          <Text style={styles.warningSub}>
+            CookSafari currently delivers only within 5 KM of Sector 62, Noida. {currentLocation.title} is {currentLocation.distanceInKm} KM away.
+          </Text>
+          <View style={styles.switchLocationPill}>
+            <Text style={styles.switchLocationText}>Switch Delivery Address →</Text>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* 2. Search & Filter Bar */}
       <View style={styles.searchSection}>
@@ -181,6 +229,9 @@ export default function HomeScreen() {
         {/* 6. Most Popular Products Component (Bottom Section) */}
         <MostPopularProducts />
       </ScrollView>
+
+      {/* Address Picker Modal */}
+      <AddressPickerModal />
     </SafeAreaView>
   );
 }
@@ -213,6 +264,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  unserviceableIconBox: {
+    backgroundColor: colors.dangerLight,
+  },
   locationTextContainer: {
     flex: 1,
   },
@@ -229,6 +283,46 @@ const styles = StyleSheet.create({
   locationAddress: {
     fontSize: typography.fontSize.xs,
     color: colors.textMuted,
+  },
+  unserviceableText: {
+    color: colors.danger,
+    fontWeight: '700',
+  },
+  warningBanner: {
+    backgroundColor: '#FEE2E2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FCA5A5',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    gap: 4,
+  },
+  warningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  warningTitle: {
+    color: '#991B1B',
+    fontWeight: '800',
+    fontSize: typography.fontSize.xs,
+  },
+  warningSub: {
+    color: '#7F1D1D',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  switchLocationPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#991B1B',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: borderRadius.xs,
+    marginTop: 2,
+  },
+  switchLocationText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   profileBtn: {
     justifyContent: 'center',
