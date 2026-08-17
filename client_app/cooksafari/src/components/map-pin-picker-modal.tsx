@@ -24,6 +24,7 @@ const { width, height } = Dimensions.get('window');
 export function MapPinPickerModal() {
   const {
     currentLocation,
+    savedLocations,
     isPickerModalOpen,
     closePickerModal,
     setLocation,
@@ -101,6 +102,20 @@ export function MapPinPickerModal() {
     checkPinpointServiceability(newRegion.latitude, newRegion.longitude);
   };
 
+  // Select a Saved Address from the chip list
+  const handleSelectSavedAddress = (item: LocationItem) => {
+    const targetRegion = {
+      latitude: item.latitude,
+      longitude: item.longitude,
+      latitudeDelta: 0.012,
+      longitudeDelta: 0.012,
+    };
+    setRegion(targetRegion);
+    mapRef.current?.animateToRegion(targetRegion, 600);
+    checkPinpointServiceability(item.latitude, item.longitude);
+    setLocation(item);
+  };
+
   // Snap Map back to user's real GPS location
   const handleSnapToUserGps = async () => {
     const gpsLoc = await detectLocationFromGps();
@@ -126,8 +141,8 @@ export function MapPinPickerModal() {
     try {
       setIsSaving(true);
 
-      // Save to UserAddress DB model via Client API
-      await addressService.createAddress({
+      // Save to UserAddress DB model via Client API with exact latitude and longitude
+      const saveRes = await addressService.createAddress({
         label,
         houseNo,
         street,
@@ -141,9 +156,9 @@ export function MapPinPickerModal() {
         isDefaultShipping: true,
       });
 
-      // Update Location Store
+      // Update Location Store with latitude and longitude
       const newLocation: LocationItem = {
-        id: `user-addr-${Date.now()}`,
+        id: saveRes.data ? `saved-${saveRes.data.id}` : `user-addr-${Date.now()}`,
         title: `${label} (${houseNo || street.split(',')[0]})`,
         address: `${houseNo ? houseNo + ', ' : ''}${street}`,
         pincode: pincode || '201309',
@@ -254,6 +269,46 @@ export function MapPinPickerModal() {
               contentContainerStyle={styles.formScrollContent}
               keyboardShouldPersistTaps="handled"
             >
+              {/* SAVED ADDRESSES QUICK SELECT CHIPS */}
+              {savedLocations.length > 0 && (
+                <View style={styles.savedSection}>
+                  <Text style={styles.sectionLabel}>YOUR SAVED ADDRESSES</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.savedScroll}
+                  >
+                    {savedLocations.map((item) => {
+                      const isSelected = currentLocation?.id === item.id;
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          onPress={() => handleSelectSavedAddress(item)}
+                          style={[
+                            styles.savedChip,
+                            isSelected && styles.savedChipActive,
+                          ]}
+                        >
+                          <Ionicons
+                            name="home"
+                            size={14}
+                            color={isSelected ? colors.textWhite : colors.primary}
+                          />
+                          <View>
+                            <Text style={[styles.savedChipTitle, isSelected && styles.savedChipTitleActive]}>
+                              {item.title}
+                            </Text>
+                            <Text style={[styles.savedChipSub, isSelected && styles.savedChipSubActive]} numberOfLines={1}>
+                              {item.address}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+
               {isServiceable ? (
                 <View style={styles.formFieldsContainer}>
                   {/* Address Label Pills */}
@@ -544,6 +599,45 @@ const styles = StyleSheet.create({
   },
   formScrollContent: {
     paddingBottom: spacing.lg,
+  },
+  savedSection: {
+    marginBottom: spacing.xs,
+    gap: 4,
+  },
+  savedScroll: {
+    gap: spacing.xs,
+    paddingVertical: 4,
+  },
+  savedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: borderRadius.md,
+    gap: 6,
+    maxWidth: 200,
+  },
+  savedChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  savedChipTitle: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  savedChipTitleActive: {
+    color: colors.textWhite,
+  },
+  savedChipSub: {
+    fontSize: 10,
+    color: colors.textMuted,
+  },
+  savedChipSubActive: {
+    color: colors.primaryLight,
   },
   formFieldsContainer: {
     gap: spacing.sm,

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as Location from 'expo-location';
 import { locationService } from '@/services/api/location-service';
+import { addressService } from '@/services/api/address-service';
 import { ServiceableAreaDto } from '@/types/api';
 
 export interface LocationItem {
@@ -31,6 +32,7 @@ interface LocationState {
   openPickerModal: () => void;
   closePickerModal: () => void;
   fetchActiveHubs: () => Promise<ServiceableAreaDto[]>;
+  fetchSavedUserAddresses: () => Promise<LocationItem[]>;
   detectLocationFromGps: () => Promise<LocationItem | null>;
   checkCustomLocation: (address: string, pincode: string, lat?: number, lng?: number) => Promise<LocationItem>;
 }
@@ -67,6 +69,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
   openPickerModal: () => {
     set({ isPickerModalOpen: true });
     get().fetchActiveHubs();
+    get().fetchSavedUserAddresses();
   },
   closePickerModal: () => set({ isPickerModalOpen: false }),
 
@@ -76,27 +79,6 @@ export const useLocationStore = create<LocationState>((set, get) => ({
       if (response.success && response.data) {
         const hubs = response.data;
         set({ activeHubs: hubs });
-
-        // Map backend hubs to selectable location items
-        const hubLocations: LocationItem[] = hubs.map(h => ({
-          id: `hub-${h.id}`,
-          title: h.name,
-          address: `${h.name}, ${h.city}, ${h.state}`,
-          pincode: h.pincode,
-          latitude: h.latitude,
-          longitude: h.longitude,
-          isServiceable: h.isActive,
-          distanceInKm: 0.0,
-          source: 'hub',
-        }));
-
-        set(state => ({
-          savedLocations: [
-            ...hubLocations,
-            ...state.savedLocations.filter(l => !l.id.startsWith('hub-')),
-          ]
-        }));
-
         return hubs;
       }
     } catch (err) {
@@ -105,11 +87,38 @@ export const useLocationStore = create<LocationState>((set, get) => ({
     return [];
   },
 
+  fetchSavedUserAddresses: async () => {
+    try {
+      const response = await addressService.getAddresses();
+      if (response.success && response.data) {
+        const addresses = response.data;
+        const mappedItems: LocationItem[] = addresses.map((a) => ({
+          id: `saved-${a.id}`,
+          title: `${a.label} (${a.houseNo || a.street.split(',')[0]})`,
+          address: `${a.houseNo ? a.houseNo + ', ' : ''}${a.street}, ${a.city}`,
+          pincode: a.zipCode,
+          latitude: a.latitude || HUB_LAT,
+          longitude: a.longitude || HUB_LNG,
+          isServiceable: true,
+          distanceInKm: 0.0,
+          source: 'manual',
+        }));
+
+        set({ savedLocations: mappedItems });
+        return mappedItems;
+      }
+    } catch (err) {
+      console.warn('Error fetching user addresses:', err);
+    }
+    return [];
+  },
+
   detectLocationFromGps: async () => {
     set({ isInitializingLocation: true });
 
-    // Fetch active hubs first
+    // Fetch active hubs and saved addresses
     await get().fetchActiveHubs();
+    await get().fetchSavedUserAddresses();
 
     try {
       // 1. Request GPS foreground permissions
@@ -176,7 +185,6 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 
         set((state) => ({
           currentLocation: gpsLocation,
-          savedLocations: [gpsLocation, ...state.savedLocations.filter(l => l.id !== gpsLocation.id)],
           isInitializingLocation: false,
         }));
 
@@ -186,31 +194,18 @@ export const useLocationStore = create<LocationState>((set, get) => ({
       console.warn('Location detection warning:', err);
     }
 
-    // Fallback if permission denied or error: use first active hub from API database if available
-    const hubs = get().activeHubs;
-    if (hubs.length > 0) {
-      const defaultHub = hubs[0];
-      const fallbackLoc: LocationItem = {
-        id: `hub-${defaultHub.id}`,
-        title: defaultHub.name,
-        address: `${defaultHub.name}, ${defaultHub.city}`,
-        pincode: defaultHub.pincode,
-        latitude: defaultHub.latitude,
-        longitude: defaultHub.longitude,
-        isServiceable: defaultHub.isActive,
-        distanceInKm: 0.0,
-        source: 'hub',
-      };
-      set({ currentLocation: fallbackLoc, isInitializingLocation: false });
-      return fallbackLoc;
+    // Fallback if permission denied or error: use first saved address or hub
+    const saved = get().savedLocations;
+    if (saved.length > 0) {
+      set({ currentLocation: saved[0], isInitializingLocation: false });
+      return saved[0];
     }
 
     set({ isInitializingLocation: false });
     return get().currentLocation;
   },
 
-  checkCustomLocation: async (address: string, pincode: string, lat = 28.6280, lng = 77.3649) => {
-    // Query Web API for serviceability
+  checkCustomLocation: async (address: string, pincode: string, lat = HUB_LAT, lng = HUB_LNG) => {
     const response = await locationService.checkServiceability({
       latitude: lat,
       longitude: lng,
