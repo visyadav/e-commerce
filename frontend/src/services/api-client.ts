@@ -46,7 +46,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     if (res.status === 401 && typeof window !== "undefined") {
       Cookies.remove("token");
       Cookies.remove("user");
-      window.location.href = "/login";
+      window.location.href = "/login?expired=true";
       return new Promise<never>(() => {});
     }
 
@@ -109,7 +109,7 @@ async function requestPaginated<T>(endpoint: string, options: RequestOptions = {
     if (res.status === 401 && typeof window !== "undefined") {
       Cookies.remove("token");
       Cookies.remove("user");
-      window.location.href = "/login";
+      window.location.href = "/login?expired=true";
       return new Promise<never>(() => {});
     }
 

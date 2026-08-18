@@ -76,5 +76,5 @@ public class OrderDto
 public class UpdateOrderStatusRequest
 {
     [Required]
-    public ECommerce.Domain.Enums.OrderStatus Status { get; set; }
+    public string Status { get; set; } = string.Empty;
 }

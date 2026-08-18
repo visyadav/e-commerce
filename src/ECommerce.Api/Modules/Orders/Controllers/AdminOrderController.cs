@@ -31,13 +31,19 @@ public class AdminOrderController : BaseApiController
         return Ok(response);
     }
 
-    [HttpPut("{id:guid}/status")]
+    [HttpPost("{id:guid}/status")]
     [HasPermission("Orders", "Update")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateOrderStatus(Guid id, [FromBody] UpdateOrderStatusRequest request, CancellationToken cancellationToken)
     {
-        var response = await _orderService.UpdateOrderStatusAsync(id, request.Status, cancellationToken);
+        if (!Enum.TryParse<ECommerce.Domain.Enums.OrderStatus>(request.Status, true, out var parsedStatus))
+        {
+            return BadRequest(ApiResponse.FailureResponse($"Invalid status '{request.Status}'. Valid status values are: Pending, Processing, OutForDelivery, Delivered, Cancelled."));
+        }
+
+        var response = await _orderService.UpdateOrderStatusAsync(id, parsedStatus, cancellationToken);
         return Ok(response);
     }
 }

@@ -144,6 +144,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     const itemList = Object.values(get().items);
 
     if (itemList.length === 0) {
+      set({ appliedCoupon: null, discountAmount: 0 });
       return { success: false, message: 'Your cart is empty.' };
     }
 
@@ -167,12 +168,15 @@ export const useCartStore = create<CartStore>((set, get) => ({
         });
         return { success: true, message: res.data.message };
       } else {
+        // Automatically clear applied coupon if no longer valid (e.g. non-discounted products removed)
+        set({ appliedCoupon: null, discountAmount: 0 });
         return {
           success: false,
-          message: res.data?.message || res.message || 'Failed to apply coupon.',
+          message: res.data?.message || res.message || 'Coupon is no longer applicable to your cart.',
         };
       }
     } catch (err: any) {
+      set({ appliedCoupon: null, discountAmount: 0 });
       return { success: false, message: err?.message || 'Error validating coupon.' };
     }
   },

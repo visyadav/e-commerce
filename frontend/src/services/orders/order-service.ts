@@ -8,11 +8,11 @@ export const orderService = {
     params.append("pageSize", pageSize.toString());
     if (searchTerm) params.append("searchTerm", searchTerm);
     if (status) params.append("status", status);
-    
+
     return apiClient.getPaginated<OrderDto>(`/AdminOrder?${params.toString()}`);
   },
 
   updateOrderStatus: (orderId: string, status: OrderStatus | string) => {
-    return apiClient.put<void>(`/AdminOrder/${orderId}/status`, { status });
+    return apiClient.post<void>(`/AdminOrder/${orderId}/status`, { status });
   }
 };

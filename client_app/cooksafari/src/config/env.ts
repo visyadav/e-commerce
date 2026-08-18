@@ -18,7 +18,7 @@ const getDevHostIp = (): string => {
 export const ENV = {
   EXPLICIT_API_URL: process.env.EXPO_PUBLIC_API_URL,
 
-  TIMEOUT_MS: 8000,
+  TIMEOUT_MS: 30000,
 
   get API_BASE_URL(): string {
     if (this.EXPLICIT_API_URL) {

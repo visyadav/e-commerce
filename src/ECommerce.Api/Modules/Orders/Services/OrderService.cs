@@ -21,19 +21,22 @@ public class OrderService : IOrderService
     private readonly IInventoryService _inventoryService;
     private readonly IEmailService _emailService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<OrderService> _logger;
 
     public OrderService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         IInventoryService inventoryService,
         IEmailService emailService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ILogger<OrderService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _inventoryService = inventoryService;
         _emailService = emailService;
         _userManager = userManager;
+        _logger = logger;
     }
 
     public async Task<ApiResponse<OrderDto>> CheckoutAsync(string userId, CreateOrderRequest request, CancellationToken cancellationToken = default)
@@ -119,7 +122,17 @@ public class OrderService : IOrderService
             }
         }
 
-        Address billingAddress = shippingAddress;
+        Address billingAddress = request.BillingAddress != null
+            ? _mapper.Map<Address>(request.BillingAddress)
+            : new Address
+            {
+                Street = shippingAddress.Street,
+                City = shippingAddress.City,
+                State = shippingAddress.State,
+                Country = shippingAddress.Country,
+                ZipCode = shippingAddress.ZipCode,
+                Phone = shippingAddress.Phone
+            };
 
         // 4. Coupon validation and discount calculation
         decimal discountAmount = 0m;
@@ -173,8 +186,7 @@ public class OrderService : IOrderService
 
         var orderNumber = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..8].ToUpperInvariant()}";
 
-        // 6. Begin Transaction
-        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        // 6. Execute Order Placement in Single Atomic Batch Transaction
         try
         {
             var order = new Order
@@ -195,7 +207,6 @@ public class OrderService : IOrderService
             };
 
             await _unitOfWork.Repository<Order>().AddAsync(order, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             // Record Coupon Usage Log & increment count upon order placement
             if (appliedCoupon != null)
@@ -226,25 +237,33 @@ public class OrderService : IOrderService
                     ProductImageUrl = ci.Product.Images?.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).FirstOrDefault(),
                     Quantity = ci.Quantity,
                     UnitPrice = ci.Product.Price,
-                    TotalPrice = ci.Product.Price * ci.Quantity,
-                    Order = order,
-                    Product = ci.Product
+                    TotalPrice = ci.Product.Price * ci.Quantity
                 };
 
                 await _unitOfWork.Repository<OrderItem>().AddAsync(orderItem, cancellationToken);
 
-                // Deduct stock via inventory service
-                await _inventoryService.DeductStockInternalAsync(ci.ProductId, ci.Quantity, orderNumber, cancellationToken);
+                // Deduct stock quantity
+                ci.Product.StockQuantity = Math.Max(0, ci.Product.StockQuantity - ci.Quantity);
+
+                var inventoryRecord = new InventoryRecord
+                {
+                    ProductId = ci.ProductId,
+                    QuantityChange = -ci.Quantity,
+                    Reason = $"Sale (Ref: {orderNumber})",
+                    ReferenceNumber = orderNumber,
+                    CreatedBy = "System"
+                };
+                await _unitOfWork.Repository<InventoryRecord>().AddAsync(inventoryRecord, cancellationToken);
             }
 
             // Clear shopping cart
             var cartRepo = _unitOfWork.Repository<CartItem>();
             cartRepo.RemoveRange(cartItems);
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            // Single atomic commit for entire order batch (guaranteed execution)
+            await _unitOfWork.SaveChangesAsync(CancellationToken.None);
 
-            // Fetch user email for confirmation
+            // Fetch user email for confirmation (non-blocking)
             var user = await _userManager.FindByIdAsync(userId);
             if (user != null && !string.IsNullOrEmpty(user.Email))
             {
@@ -257,16 +276,16 @@ public class OrderService : IOrderService
                 }
                 catch
                 {
-                    // Do not fail checkout flow if email service throws an error
+                    // Email failure does not break order placement
                 }
             }
 
             var dto = _mapper.Map<OrderDto>(order);
             return ApiResponse<OrderDto>.SuccessResponse(dto, "Order placed successfully.");
         }
-        catch
+        catch (Exception ex)
         {
-            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            _logger.LogError(ex, "Failed to place order for user {UserId}", userId);
             throw;
         }
     }

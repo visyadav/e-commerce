@@ -50,14 +50,14 @@ export interface OrderDto {
 
 export const clientOrderService = {
   createOrder: (request: CreateOrderRequest): Promise<ApiResponse<OrderDto>> => {
-    return apiClient.post<OrderDto>('/orders', request);
+    return apiClient.post<OrderDto>('/Order', request);
   },
 
   getMyOrders: (pageNumber = 1, pageSize = 20): Promise<ApiResponse<OrderDto[]>> => {
-    return apiClient.get<OrderDto[]>(`/orders?pageNumber=${pageNumber}&pageSize=${pageSize}`);
+    return apiClient.get<OrderDto[]>(`/Order?pageNumber=${pageNumber}&pageSize=${pageSize}`);
   },
 
   getOrderById: (id: string): Promise<ApiResponse<OrderDto>> => {
-    return apiClient.get<OrderDto>(`/orders/${id}`);
+    return apiClient.get<OrderDto>(`/Order/${id}`);
   },
 };

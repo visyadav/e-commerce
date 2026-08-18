@@ -1,3 +1,4 @@
+import { Alert, Platform } from 'react-native';
 import { ENV } from '@/config/env';
 import { ApiResponse } from '@/types/api';
 
@@ -56,9 +57,27 @@ export class ApiClient {
 
       if (!response.ok) {
         if (response.status === 401) {
+          const message = 'You are logged out. Please login again.';
+
+          try {
+            // Import store lazily to prevent circular dependency
+            const { useAuthStore } = require('@/store/auth-store');
+            const authStore = useAuthStore.getState();
+            authStore.logout();
+            authStore.openLoginModal();
+          } catch (e) {
+            console.warn('[ApiClient 401 Handler Error]', e);
+          }
+
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert(message);
+          } else {
+            Alert.alert('Session Expired', message);
+          }
+
           return {
             success: false,
-            message: 'Session expired. Please login again.',
+            message,
           };
         }
         return {

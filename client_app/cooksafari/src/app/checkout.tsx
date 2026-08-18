@@ -35,6 +35,8 @@ export default function CheckoutScreen() {
     getDeliveryFee,
     getPackagingFee,
     getGrandTotal,
+    updateQuantity,
+    removeItem,
     clearCart,
   } = useCartStore();
 
@@ -159,20 +161,52 @@ export default function CheckoutScreen() {
             <Text style={styles.cardTitle}>Order Summary ({itemList.length} items)</Text>
           </View>
 
-          {itemList.map(({ product, quantity }) => (
-            <View key={product.id} style={styles.itemRow}>
-              <Image source={{ uri: formatImageUrl(product.imageUrl) }} style={styles.itemImg} />
-              <View style={styles.itemMeta}>
-                <Text style={styles.itemName} numberOfLines={1}>
-                  {product.name}
-                </Text>
-                <Text style={styles.itemSub}>
-                  {product.unit} • Qty: {quantity}
-                </Text>
+          {itemList.map(({ product, quantity }) => {
+            const hasProductDiscount = !!(product.originalPrice && product.originalPrice > product.price);
+            return (
+              <View key={product.id} style={styles.itemRow}>
+                <Image source={{ uri: formatImageUrl(product.imageUrl) }} style={styles.itemImg} />
+                <View style={styles.itemMeta}>
+                  <Text style={styles.itemName} numberOfLines={1}>
+                    {product.name}
+                  </Text>
+                  <Text style={styles.itemSub}>
+                    ₹{product.price} / {product.unit}
+                    {hasProductDiscount && (
+                      <Text style={styles.productDiscountBadge}> • Product Discount</Text>
+                    )}
+                  </Text>
+                </View>
+
+                {/* Quantity Stepper */}
+                <View style={styles.stepperContainer}>
+                  <TouchableOpacity
+                    onPress={() => updateQuantity(product.id, quantity - 1)}
+                    style={styles.stepBtn}
+                  >
+                    <Ionicons name="remove" size={12} color={colors.primary} />
+                  </TouchableOpacity>
+                  <Text style={styles.stepVal}>{quantity}</Text>
+                  <TouchableOpacity
+                    onPress={() => updateQuantity(product.id, quantity + 1)}
+                    style={styles.stepBtn}
+                  >
+                    <Ionicons name="add" size={12} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.itemPrice}>₹{product.price * quantity}</Text>
+
+                {/* Remove Item */}
+                <TouchableOpacity
+                  onPress={() => removeItem(product.id)}
+                  style={styles.deleteBtn}
+                >
+                  <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                </TouchableOpacity>
               </View>
-              <Text style={styles.itemPrice}>₹{product.price * quantity}</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* 3. Applied Coupon (if active) */}
@@ -417,6 +451,36 @@ const styles = StyleSheet.create({
   itemSub: {
     fontSize: 10,
     color: colors.textMuted,
+  },
+  productDiscountBadge: {
+    color: '#D97706',
+    fontWeight: '700',
+    fontSize: 10,
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    gap: 4,
+  },
+  stepBtn: {
+    padding: 2,
+  },
+  stepVal: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    minWidth: 14,
+    textAlign: 'center',
+  },
+  deleteBtn: {
+    padding: 4,
+    marginLeft: 2,
   },
   itemPrice: {
     fontSize: typography.fontSize.xs,

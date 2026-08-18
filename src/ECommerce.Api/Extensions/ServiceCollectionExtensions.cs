@@ -49,11 +49,15 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options => options.ConfigureSwagger());
 
-        // 7. Configure Controllers with Global Validation and Logging Filters
+        // 7. Configure Controllers with Global Validation, Logging Filters, and Enum String Converter
         services.AddControllers(options =>
         {
             options.Filters.Add<ValidationFilter>();
             options.Filters.Add<LoggingActionFilter>();
+        })
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
         });
 
         // 8. HttpContextAccessor for CurrentUserService
