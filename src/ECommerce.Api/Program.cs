@@ -24,6 +24,7 @@ await app.SeedDatabaseAsync();
 app.UseApiPipeline(app.Environment);
 
 app.MapControllers();
+app.MapHub<ECommerce.Api.Modules.Notifications.Hubs.NotificationHub>("/hubs/notification");
 
 app.Run();
 

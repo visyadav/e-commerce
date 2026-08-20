@@ -308,24 +308,32 @@ public class AuthService : IAuthService
 
     public async Task<ApiResponse<AuthResponse>> LoginWithMobileOtpAsync(MobileOtpLoginRequest request, CancellationToken cancellationToken = default)
     {
-        var cleanPhone = request.PhoneNumber.Trim();
+        var rawPhone = request.PhoneNumber.Trim();
+        var digitsOnly = new string(rawPhone.Where(char.IsDigit).ToArray());
+        var cleanPhone = digitsOnly.Length >= 10 ? digitsOnly[^10..] : digitsOnly;
+
         if (string.IsNullOrWhiteSpace(cleanPhone) || cleanPhone.Length < 10)
         {
             return ApiResponse<AuthResponse>.FailureResponse("Please enter a valid 10-digit mobile number.", ["Invalid phone number"]);
         }
 
         // Find or create customer user
-        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == cleanPhone || u.UserName == cleanPhone, cancellationToken);
+        var user = await _userManager.Users.FirstOrDefaultAsync(
+            u => u.PhoneNumber == cleanPhone || u.PhoneNumber == rawPhone || u.UserName == cleanPhone, 
+            cancellationToken);
+
         if (user == null)
         {
             var name = !string.IsNullOrWhiteSpace(request.FullName) ? request.FullName.Trim() : $"Customer {cleanPhone[^4..]}";
+            var uniqueEmail = $"{cleanPhone}@customer.cooksafari.app";
+
             user = new ApplicationUser
             {
                 UserName = cleanPhone,
                 PhoneNumber = cleanPhone,
                 FirstName = name,
                 LastName = name,
-                Email = $"",
+                Email = uniqueEmail,
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true,
                 IsActive = true,
@@ -336,6 +344,7 @@ public class AuthService : IAuthService
             if (!createResult.Succeeded)
             {
                 var errs = createResult.Errors.Select(e => e.Description).ToList();
+                _logger.LogWarning("Failed to create customer account for phone {PhoneNumber}: {Errors}", cleanPhone, string.Join(", ", errs));
                 return ApiResponse<AuthResponse>.FailureResponse("Failed to create customer session.", errs);
             }
 

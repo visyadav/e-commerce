@@ -36,8 +36,9 @@ public static class ServiceCollectionExtensions
         // 2. Add Caching (Redis or In-Memory)
         services.AddCustomCaching(configuration);
 
-        // 3. Add Custom Authorization Policies
+        // 3. Add Custom Authorization Policies & SignalR
         services.AddCustomAuthorization();
+        services.AddSignalR();
 
         // 4. Add AutoMapper for all profiles in the solution
         services.AddAutoMapper(cfg => cfg.AddMaps(AppDomain.CurrentDomain.GetAssemblies()));

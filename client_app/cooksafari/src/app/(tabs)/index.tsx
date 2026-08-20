@@ -293,6 +293,7 @@ export default function HomeScreen() {
                 discountPercentage={item.discountPercentage}
                 rating={item.rating}
                 isVeg={item.isVeg}
+                stockQuantity={item.stockQuantity}
                 width={cardWidth}
               />
             ))}

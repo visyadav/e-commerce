@@ -17,7 +17,12 @@ import { toast } from "sonner";
 import { Loader2, Eye, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
+import { useSearchParams } from "next/navigation";
+
 export default function OrdersPage() {
+  const searchParams = useSearchParams();
+  const queryOrderId = searchParams.get("orderId");
+
   const [orders, setOrders] = useState<OrderDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
@@ -59,6 +64,19 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
   }, [page, pageSize, debouncedSearch, statusFilter]);
+
+  // Automatically open order details modal when navigated from a notification
+  useEffect(() => {
+    if (queryOrderId && orders.length > 0) {
+      const match = orders.find(
+        (o) => o.id.toLowerCase() === queryOrderId.toLowerCase() || o.orderNumber.toLowerCase() === queryOrderId.toLowerCase()
+      );
+      if (match) {
+        setSelectedOrder(match);
+        setIsDetailsOpen(true);
+      }
+    }
+  }, [queryOrderId, orders]);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {

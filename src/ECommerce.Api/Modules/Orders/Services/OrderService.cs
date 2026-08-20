@@ -12,6 +12,9 @@ using ECommerce.Shared.Responses;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
+using ECommerce.Api.Modules.Notifications.Hubs;
+using Microsoft.AspNetCore.SignalR;
+
 namespace ECommerce.Api.Modules.Orders.Services;
 
 public class OrderService : IOrderService
@@ -22,6 +25,7 @@ public class OrderService : IOrderService
     private readonly IEmailService _emailService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<OrderService> _logger;
+    private readonly IHubContext<NotificationHub> _hubContext;
 
     public OrderService(
         IUnitOfWork unitOfWork,
@@ -29,7 +33,8 @@ public class OrderService : IOrderService
         IInventoryService inventoryService,
         IEmailService emailService,
         UserManager<ApplicationUser> userManager,
-        ILogger<OrderService> logger)
+        ILogger<OrderService> logger,
+        IHubContext<NotificationHub> hubContext)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
@@ -37,6 +42,7 @@ public class OrderService : IOrderService
         _emailService = emailService;
         _userManager = userManager;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     public async Task<ApiResponse<OrderDto>> CheckoutAsync(string userId, CreateOrderRequest request, CancellationToken cancellationToken = default)
@@ -263,8 +269,44 @@ public class OrderService : IOrderService
             // Single atomic commit for entire order batch (guaranteed execution)
             await _unitOfWork.SaveChangesAsync(CancellationToken.None);
 
-            // Fetch user email for confirmation (non-blocking)
+            // Fetch user info for confirmation & notifications
             var user = await _userManager.FindByIdAsync(userId);
+            var customerName = user?.FullName ?? "Customer";
+
+            // Persist & Broadcast Real-Time SignalR Notification to Admin Panel
+            try
+            {
+                var adminUsers = await _userManager.GetUsersInRoleAsync(ECommerce.Shared.Constants.AppConstants.Roles.Admin);
+                foreach (var admin in adminUsers)
+                {
+                    var notif = new Notification
+                    {
+                        Title = $"New Order #{orderNumber}",
+                        Message = $"New order placed by {customerName} for ₹{totalAmount:N2}",
+                        Type = NotificationType.Info,
+                        IsRead = false,
+                        ActionUrl = $"/admin/orders?orderId={order.Id}",
+                        UserId = admin.Id
+                    };
+                    await _unitOfWork.Repository<Notification>().AddAsync(notif, cancellationToken);
+                }
+                await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+                await _hubContext.Clients.Group(NotificationHub.AdminGroup).SendAsync("NewOrderPlaced", new
+                {
+                    id = order.Id,
+                    orderNumber = order.OrderNumber,
+                    totalAmount = order.TotalAmount,
+                    customerName = customerName,
+                    createdAt = order.CreatedAt,
+                    message = $"New order #{order.OrderNumber} placed by {customerName} for ₹{order.TotalAmount:N2}"
+                }, cancellationToken);
+            }
+            catch (Exception notifEx)
+            {
+                _logger.LogWarning(notifEx, "Failed to send real-time SignalR order notification");
+            }
+
             if (user != null && !string.IsNullOrEmpty(user.Email))
             {
                 try

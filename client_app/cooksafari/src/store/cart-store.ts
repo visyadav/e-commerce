@@ -1,3 +1,4 @@
+import { Alert, Platform } from 'react-native';
 import { create } from 'zustand';
 import { cartService } from '@/services/api/cart-service';
 import { clientCouponService, ApplyCouponRequest } from '@/services/api/coupon-service';
@@ -11,6 +12,7 @@ export interface CartProduct {
   unit: string;
   imageUrl: string;
   isVeg?: boolean;
+  stockQuantity?: number;
 }
 
 export interface CartItem {
@@ -27,8 +29,8 @@ interface CartStore {
   
   // Actions
   getItemQuantity: (productId: string) => number;
-  addItem: (product: CartProduct, quantity?: number) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (product: CartProduct, quantity?: number) => boolean;
+  updateQuantity: (productId: string, quantity: number) => boolean;
   removeItem: (productId: string) => void;
   clearCart: () => void;
   applyCoupon: (code: string, userId?: string) => Promise<{ success: boolean; message: string }>;
@@ -58,32 +60,64 @@ export const useCartStore = create<CartStore>((set, get) => ({
   },
 
   addItem: (product: CartProduct, qtyToAdd = 1) => {
+    const existing = get().items[product.id];
+    const currentQty = existing?.quantity || 0;
+    const requestedQty = currentQty + qtyToAdd;
+    const maxStock = product.stockQuantity;
+
+    if (maxStock !== undefined) {
+      if (maxStock <= 0) {
+        const msg = `'${product.name}' is currently out of stock.`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert(msg);
+        else Alert.alert('Out of Stock', msg);
+        return false;
+      }
+      if (requestedQty > maxStock) {
+        const msg = `Only ${maxStock} units of '${product.name}' are available in stock.`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert(msg);
+        else Alert.alert('Stock Limit Reached', msg);
+        return false;
+      }
+    }
+
     set((state) => {
-      const existing = state.items[product.id];
-      const newQty = (existing?.quantity || 0) + qtyToAdd;
-      
       const newItems = {
         ...state.items,
         [product.id]: {
           ...existing,
           product,
-          quantity: newQty,
+          quantity: requestedQty,
         },
       };
       
       return { items: newItems };
     });
 
-    cartService.addToCart({ productId: product.id, quantity: qtyToAdd }).catch(() => {});
+    cartService.addToCart({ productId: product.id, quantity: qtyToAdd }).catch((err: any) => {
+      if (err?.message) {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert(err.message);
+        else Alert.alert('Stock Warning', err.message);
+      }
+    });
+
+    return true;
   },
 
   updateQuantity: (productId: string, quantity: number) => {
     const existing = get().items[productId];
-    if (!existing) return;
+    if (!existing) return false;
 
     if (quantity <= 0) {
       get().removeItem(productId);
-      return;
+      return true;
+    }
+
+    const maxStock = existing.product.stockQuantity;
+    if (maxStock !== undefined && quantity > maxStock) {
+      const msg = `Only ${maxStock} units of '${existing.product.name}' available in stock.`;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert(msg);
+      else Alert.alert('Stock Limit Reached', msg);
+      return false;
     }
 
     // 1. Immediately update UI state with zero latency
@@ -114,6 +148,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
     if (appliedCoupon) {
       get().applyCoupon(appliedCoupon);
     }
+
+    return true;
   },
 
   removeItem: (productId: string) => {

@@ -28,6 +28,7 @@ export default function ProductDetailsScreen() {
   const [product, setProduct] = useState<ClientProductDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const { getItemQuantity, addItem, updateQuantity, getTotalItems } = useCartStore();
   const { isAuthenticated, openLoginModal } = useAuthStore();
@@ -94,24 +95,39 @@ export default function ProductDetailsScreen() {
       ? product.imageUrls
       : [product.imageUrl];
 
-  const cartProduct = {
-    id: product.id,
-    name: product.name,
-    price: product.price,
-    originalPrice: product.originalPrice,
-    unit: product.unit,
-    imageUrl: product.imageUrl,
-  };
+  const isOutOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
 
   const handleIncrement = () => {
+    if (isOutOfStock) return;
     if (!isAuthenticated) {
       openLoginModal({
-        product: cartProduct,
+        product: {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          originalPrice: product.originalPrice,
+          unit: product.unit,
+          imageUrl: product.imageUrl,
+          isVeg: product.isVeg,
+          stockQuantity: product.stockQuantity,
+        },
         quantity: 1,
       });
       return;
     }
-    addItem(cartProduct, 1);
+    addItem(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        unit: product.unit,
+        imageUrl: product.imageUrl,
+        isVeg: product.isVeg,
+        stockQuantity: product.stockQuantity,
+      },
+      1
+    );
   };
 
   const handleDecrement = () => {
@@ -124,24 +140,28 @@ export default function ProductDetailsScreen() {
       : 0;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
 
-      {/* Top Header Bar */}
+      {/* Header Bar */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {product.name}
         </Text>
         <View style={styles.headerRightRow}>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => router.push('/(tabs)/cart')}
-          >
-            <View style={{ position: 'relative' }}>
-              <Ionicons name="cart-outline" size={24} color={colors.textPrimary} />
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setIsFavorite(!isFavorite)}>
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={22}
+              color={isFavorite ? colors.danger : colors.textPrimary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/(tabs)/cart')}>
+            <View>
+              <Ionicons name="cart-outline" size={22} color={colors.textPrimary} />
               {totalCartItems > 0 && (
                 <View style={styles.badgePill}>
                   <Text style={styles.badgeText}>{totalCartItems}</Text>
@@ -167,24 +187,33 @@ export default function ProductDetailsScreen() {
           >
             {galleryImages.map((imgUrl, index) => (
               <View key={index} style={styles.slideBox}>
-                <Image source={{ uri: imgUrl }} style={styles.galleryImg} resizeMode="contain" />
+                <Image
+                  source={{ uri: imgUrl }}
+                  style={[styles.galleryImg, isOutOfStock && styles.galleryImgOutOfStock]}
+                  resizeMode="contain"
+                />
+                {isOutOfStock && <View style={styles.blackAndWhiteOverlay} />}
               </View>
             ))}
           </ScrollView>
 
           {/* Floating Badges */}
           <View style={styles.floatingBadgesRow}>
-            {product.isVeg && (
+            {isOutOfStock ? (
+              <View style={styles.outOfStockBadgeBig}>
+                <Text style={styles.outOfStockBadgeBigText}>CURRENTLY NOT AVAILABLE</Text>
+              </View>
+            ) : product.isVeg ? (
               <View style={styles.vegBadge}>
                 <View style={styles.vegDot} />
                 <Text style={styles.vegText}>100% PURE VEG</Text>
               </View>
-            )}
-            {product.discountPercentage && (
+            ) : null}
+            {!isOutOfStock && product.discountPercentage ? (
               <View style={styles.discountBadge}>
                 <Text style={styles.discountText}>{product.discountPercentage}</Text>
               </View>
-            )}
+            ) : null}
           </View>
 
           {/* Pagination Dots */}
@@ -202,6 +231,12 @@ export default function ProductDetailsScreen() {
 
         {/* Product Details Section */}
         <View style={styles.detailsCard}>
+          {isOutOfStock && (
+            <View style={styles.outOfStockBanner}>
+              <Ionicons name="alert-circle" size={16} color="#DC2626" />
+              <Text style={styles.outOfStockBannerText}>Currently Out of Stock. This item is not available for order right now.</Text>
+            </View>
+          )}
           <View style={styles.categoryRow}>
             <Text style={styles.categoryName}>{product.categoryName}</Text>
             <View style={styles.ratingBox}>
@@ -227,7 +262,7 @@ export default function ProductDetailsScreen() {
             ) : null}
           </View>
 
-          {discountAmount > 0 && (
+          {discountAmount > 0 && !isOutOfStock && (
             <View style={styles.savingsAlert}>
               <Ionicons name="sparkles" size={15} color="#065F46" />
               <Text style={styles.savingsAlertText}>
@@ -262,7 +297,7 @@ export default function ProductDetailsScreen() {
           <View style={styles.highlightsGrid}>
             <View style={styles.highlightItem}>
               <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-              <Text style={styles.highlightText}>100% Fresh & Pure Quality</Text>
+              <Text style={styles.highlightText}>100% Quality Inspected</Text>
             </View>
             <View style={styles.highlightItem}>
               <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
@@ -287,7 +322,11 @@ export default function ProductDetailsScreen() {
           <Text style={styles.bottomPriceValue}>₹{product.price}</Text>
         </View>
 
-        {quantity === 0 ? (
+        {isOutOfStock ? (
+          <View style={styles.disabledBottomBtn}>
+            <Text style={styles.disabledBottomBtnText}>CURRENTLY NOT AVAILABLE</Text>
+          </View>
+        ) : quantity === 0 ? (
           <TouchableOpacity style={styles.addBtn} activeOpacity={0.88} onPress={handleIncrement}>
             <Text style={styles.addBtnText}>ADD TO CART</Text>
             <Ionicons name="add" size={18} color={colors.textWhite} />
@@ -433,12 +472,63 @@ const styles = StyleSheet.create({
     width: '90%',
     height: '85%',
   },
+  galleryImgOutOfStock: {
+    opacity: 0.4,
+  },
+  blackAndWhiteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(100, 116, 139, 0.25)',
+  },
   floatingBadgesRow: {
     position: 'absolute',
     top: spacing.md,
     left: spacing.md,
     flexDirection: 'row',
     gap: spacing.xs,
+  },
+  outOfStockBadgeBig: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: borderRadius.xs,
+  },
+  outOfStockBadgeBigText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  outOfStockBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderLeftWidth: 4,
+    borderLeftColor: '#DC2626',
+    padding: spacing.md,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.md,
+    gap: 8,
+  },
+  outOfStockBannerText: {
+    flex: 1,
+    color: '#991B1B',
+    fontSize: typography.fontSize.xs,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  disabledBottomBtn: {
+    backgroundColor: '#CBD5E1',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disabledBottomBtnText: {
+    color: '#475569',
+    fontWeight: '800',
+    fontSize: typography.fontSize.xs,
+    letterSpacing: 0.4,
   },
   vegBadge: {
     flexDirection: 'row',

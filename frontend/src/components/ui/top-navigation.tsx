@@ -6,6 +6,7 @@ import {
     navigationMenuTriggerStyle,
 } from "@/src/components/ui/navigation-menu"
 import { UserProfile } from "../admin/user-profile"
+import { NotificationBell } from "../admin/notification-bell"
 
 export function TopNavigation() {
     return (
@@ -19,7 +20,10 @@ export function TopNavigation() {
                     </NavigationMenuItem>
                 </NavigationMenuList>
             </NavigationMenu>
-            <UserProfile />
+            <div className="flex items-center gap-3">
+                <NotificationBell />
+                <UserProfile />
+            </div>
         </div>
     )
 }

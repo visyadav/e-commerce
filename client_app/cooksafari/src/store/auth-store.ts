@@ -22,6 +22,7 @@ export interface PendingCartAction {
     unit: string;
     imageUrl: string;
     isVeg?: boolean;
+    stockQuantity?: number;
   };
   quantity: number;
 }

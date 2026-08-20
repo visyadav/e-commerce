@@ -23,6 +23,7 @@ export interface ProductCardProps {
   rating?: number;
   isVeg?: boolean;
   deliveryTime?: string;
+  stockQuantity?: number;
   onPress?: () => void;
   onAddToCart?: (id: string, quantity: number) => void;
   width?: number;
@@ -46,6 +47,7 @@ export function ProductCard({
   rating = 4.8,
   isVeg = true,
   deliveryTime = '10 MINS',
+  stockQuantity,
   onPress,
   onAddToCart,
   width,
@@ -59,6 +61,7 @@ export function ProductCard({
   const { getItemQuantity, addItem, updateQuantity } = useCartStore();
   const { isAuthenticated, openLoginModal } = useAuthStore();
   const quantity = getItemQuantity(id);
+  const isOutOfStock = stockQuantity !== undefined && stockQuantity <= 0;
 
   const handleCardPress = () => {
     if (onPress) {
@@ -76,15 +79,18 @@ export function ProductCard({
   );
 
   const handleIncrement = () => {
+    if (isOutOfStock) return;
     if (!isAuthenticated) {
       openLoginModal({
-        product: { id, name, price, originalPrice, unit, imageUrl, isVeg },
+        product: { id, name, price, originalPrice, unit, imageUrl, isVeg, stockQuantity },
         quantity: 1,
       });
       return;
     }
-    addItem({ id, name, price, originalPrice, unit, imageUrl, isVeg }, 1);
-    onAddToCart?.(id, quantity + 1);
+    const added = addItem({ id, name, price, originalPrice, unit, imageUrl, isVeg, stockQuantity }, 1);
+    if (added) {
+      onAddToCart?.(id, quantity + 1);
+    }
   };
 
   const handleDecrement = () => {
@@ -96,13 +102,17 @@ export function ProductCard({
     <TouchableOpacity
       activeOpacity={0.92}
       onPress={handleCardPress}
-      style={[styles.card, width ? { width } : null, style]}
+      style={[styles.card, width ? { width } : null, isOutOfStock && styles.cardOutOfStock, style]}
     >
       {/* 1. Top Image Canvas */}
       <View style={styles.imageCanvas}>
         {/* Top Badges Row */}
         <View style={styles.topBadgesRow}>
-          {computedDiscount ? (
+          {isOutOfStock ? (
+            <View style={styles.outOfStockBadge}>
+              <Text style={styles.outOfStockBadgeText}>Currently Not Available</Text>
+            </View>
+          ) : computedDiscount ? (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>{computedDiscount}</Text>
             </View>
@@ -126,16 +136,19 @@ export function ProductCard({
           </TouchableOpacity>
         </View>
 
-        {/* Product Image */}
-        <Image
-          source={{ uri: imageError || !imageUrl ? fallbackImage : imageUrl }}
-          style={styles.productImage}
-          resizeMode="cover"
-          onError={() => setImageError(true)}
-        />
+        {/* Product Image Container with Grayscale/Black&White Effect */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: imageError || !imageUrl ? fallbackImage : imageUrl }}
+            style={[styles.productImage, isOutOfStock && styles.productImageOutOfStock]}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+          {isOutOfStock && <View style={styles.blackAndWhiteOverlay} />}
+        </View>
 
         {/* Delivery ETA Pill */}
-        {deliveryTime ? (
+        {!isOutOfStock && deliveryTime ? (
           <View style={styles.etaPill}>
             <Ionicons name="flash" size={10} color="#D97706" />
             <Text style={styles.etaText}>{deliveryTime}</Text>
@@ -179,7 +192,11 @@ export function ProductCard({
           </View>
 
           {/* ADD / Counter Stepper */}
-          {quantity === 0 ? (
+          {isOutOfStock ? (
+            <View style={styles.disabledAddButton}>
+              <Text style={styles.disabledAddText}>OUT OF STOCK</Text>
+            </View>
+          ) : quantity === 0 ? (
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleIncrement}
@@ -219,6 +236,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
   },
+  cardOutOfStock: {
+    opacity: 0.8,
+  },
   imageCanvas: {
     width: '100%',
     height: 130,
@@ -237,6 +257,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     zIndex: 10,
+  },
+  outOfStockBadge: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: borderRadius.xs,
+  },
+  outOfStockBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   discountBadge: {
     backgroundColor: '#059669',
@@ -274,10 +306,38 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 3,
   },
+  imageContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
   productImage: {
     width: '82%',
     height: '82%',
     borderRadius: borderRadius.sm,
+  },
+  productImageOutOfStock: {
+    opacity: 0.4,
+  },
+  blackAndWhiteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(100, 116, 139, 0.25)',
+    borderRadius: borderRadius.sm,
+  },
+  disabledAddButton: {
+    backgroundColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: borderRadius.sm,
+  },
+  disabledAddText: {
+    color: '#64748B',
+    fontWeight: '800',
+    fontSize: 10,
   },
   etaPill: {
     position: 'absolute',
