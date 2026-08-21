@@ -37,7 +37,8 @@ interface AuthStore {
   // Actions
   openLoginModal: (pendingAction?: PendingCartAction) => void;
   closeLoginModal: () => void;
-  loginWithMobile: (phoneNumber: string, otp?: string, fullName?: string) => Promise<{ success: boolean; message: string }>;
+  loginWithMobile: (phoneNumber: string, otp?: string, fullName?: string) => Promise<{ success: boolean; message: string; user?: UserSession }>;
+  updateName: (fullName: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   initAuth: () => void;
 }
@@ -136,12 +137,33 @@ export const useAuthStore = create<AuthStore>()(
             // Automatically sync cart from backend DB on login
             useCartStore.getState().syncWithServer();
 
-            return { success: true, message: 'Logged in successfully!' };
+            return { success: true, message: 'Logged in successfully!', user: session };
           } else {
             return { success: false, message: res.message || 'Login failed' };
           }
         } catch (err: any) {
           return { success: false, message: err?.message || 'Login error occurred' };
+        }
+      },
+
+      updateName: async (fullName: string) => {
+        try {
+          const res = await clientAuthService.updateName(fullName);
+          if (res.success) {
+            set((state) => {
+              if (!state.user) return state;
+              return {
+                user: {
+                  ...state.user,
+                  fullName: res.data?.fullName || fullName,
+                },
+              };
+            });
+            return { success: true, message: 'Name updated successfully!' };
+          }
+          return { success: false, message: res.message || 'Failed to update name' };
+        } catch (err: any) {
+          return { success: false, message: err?.message || 'Error updating name' };
         }
       },
 

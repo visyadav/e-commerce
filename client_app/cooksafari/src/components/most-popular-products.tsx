@@ -27,6 +27,7 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
   const { isAuthenticated, openLoginModal } = useAuthStore();
 
   const quantity = getItemQuantity(product.id);
+  const isOutOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
 
   const cartProduct = {
     id: product.id,
@@ -35,9 +36,12 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
     originalPrice: product.originalPrice,
     unit: product.unit,
     imageUrl: product.imageUrl,
+    isVeg: product.isVeg,
+    stockQuantity: product.stockQuantity,
   };
 
   const handleIncrement = () => {
+    if (isOutOfStock) return;
     if (!isAuthenticated) {
       openLoginModal({
         product: cartProduct,
@@ -55,22 +59,29 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
   return (
     <TouchableOpacity
       activeOpacity={0.9}
-      style={styles.popularCard}
+      style={[styles.popularCard, isOutOfStock && styles.cardOutOfStock]}
       onPress={() => router.push(`/product/${product.id}`)}
     >
-      {/* Rank Badge Tag */}
-      <View style={styles.rankBadge}>
-        <Ionicons name="flame" size={12} color="#FFFFFF" />
-        <Text style={styles.rankText}>#{rank} Popular</Text>
-      </View>
+      {/* Rank or Out-of-Stock Badge Tag */}
+      {isOutOfStock ? (
+        <View style={styles.outOfStockBadge}>
+          <Text style={styles.outOfStockBadgeText}>Currently Not Available</Text>
+        </View>
+      ) : (
+        <View style={styles.rankBadge}>
+          <Ionicons name="flame" size={12} color="#FFFFFF" />
+          <Text style={styles.rankText}>#{rank} Popular</Text>
+        </View>
+      )}
 
-      {/* Image Area */}
+      {/* Image Area with Grayscale / Black and White Overlay */}
       <View style={styles.imageBox}>
         <Image
           source={{ uri: product.imageUrl }}
-          style={styles.productImg}
+          style={[styles.productImg, isOutOfStock && styles.productImgOutOfStock]}
           resizeMode="cover"
         />
+        {isOutOfStock && <View style={styles.blackAndWhiteOverlay} />}
       </View>
 
       {/* Product Details */}
@@ -99,7 +110,11 @@ function PopularProductCard({ product, rank }: PopularCardProps) {
             ) : null}
           </View>
 
-          {quantity === 0 ? (
+          {isOutOfStock ? (
+            <View style={styles.disabledAddButton}>
+              <Text style={styles.disabledAddText}>OUT OF STOCK</Text>
+            </View>
+          ) : quantity === 0 ? (
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleIncrement}
@@ -251,6 +266,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
   },
+  cardOutOfStock: {
+    opacity: 0.8,
+  },
+  outOfStockBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: borderRadius.xs,
+    zIndex: 10,
+  },
+  outOfStockBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
   rankBadge: {
     position: 'absolute',
     top: 10,
@@ -275,10 +309,31 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
   productImg: {
     width: '100%',
     height: '100%',
+  },
+  productImgOutOfStock: {
+    opacity: 0.4,
+  },
+  blackAndWhiteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(100, 116, 139, 0.25)',
+  },
+  disabledAddButton: {
+    backgroundColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  disabledAddText: {
+    color: '#64748B',
+    fontWeight: '800',
+    fontSize: 10,
   },
   detailsBox: {
     padding: spacing.md,

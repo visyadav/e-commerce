@@ -24,4 +24,8 @@ export const clientAuthService = {
   getMe: (): Promise<ApiResponse<AuthResponse>> => {
     return apiClient.get<AuthResponse>('/client/auth/me');
   },
+
+  updateName: (fullName: string): Promise<ApiResponse<AuthResponse>> => {
+    return apiClient.post<AuthResponse>('/client/auth/update-name', { fullName });
+  },
 };

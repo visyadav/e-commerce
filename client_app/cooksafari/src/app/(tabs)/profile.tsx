@@ -1,14 +1,46 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function ProfileScreen() {
-  const { isAuthenticated, user, logout, openLoginModal } = useAuthStore();
+  const { isAuthenticated, user, logout, openLoginModal, updateName } = useAuthStore();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleOpenEdit = () => {
+    if (!isAuthenticated) {
+      openLoginModal();
+      return;
+    }
+    setEditName(user?.fullName || '');
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    const clean = editName.trim();
+    if (!clean) {
+      Alert.alert('Invalid Name', 'Please enter a valid name.');
+      return;
+    }
+
+    setIsLoading(true);
+    const res = await updateName(clean);
+    setIsLoading(false);
+
+    if (res.success) {
+      Alert.alert('Profile Updated 🎉', 'Your name has been updated successfully!');
+      setIsEditModalOpen(false);
+    } else {
+      Alert.alert('Update Failed', res.message);
+    }
+  };
 
   const menuOptions = [
+    { icon: 'create-outline', title: 'Edit Profile Details', subtitle: 'Update your display name', action: handleOpenEdit },
     { icon: 'location-outline', title: 'Delivery Addresses', subtitle: 'Manage home & office address' },
     { icon: 'card-outline', title: 'Payment Methods', subtitle: 'UPI, Cards & Wallet' },
     { icon: 'notifications-outline', title: 'Notifications', subtitle: 'Order status alerts & offers' },
@@ -23,7 +55,7 @@ export default function ProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* User Info Card */}
-        <View style={styles.userCard}>
+        <TouchableOpacity activeOpacity={0.9} style={styles.userCard} onPress={handleOpenEdit}>
           <View style={styles.avatarCircle}>
             <Ionicons name="person" size={32} color={colors.textWhite} />
           </View>
@@ -31,7 +63,10 @@ export default function ProfileScreen() {
           <View style={styles.userInfo}>
             {isAuthenticated && user ? (
               <>
-                <Text style={styles.userName}>{user.fullName}</Text>
+                <View style={styles.nameRow}>
+                  <Text style={styles.userName}>{user.fullName}</Text>
+                  <Ionicons name="pencil" size={15} color={colors.primary} />
+                </View>
                 <Text style={styles.userPhone}>+91 {user.phoneNumber}</Text>
               </>
             ) : (
@@ -41,12 +76,12 @@ export default function ProfileScreen() {
               </>
             )}
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Account Menu */}
         <View style={styles.menuSection}>
           {menuOptions.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.menuRow}>
+            <TouchableOpacity key={index} style={styles.menuRow} onPress={item.action}>
               <View style={styles.menuIconBox}>
                 <Ionicons name={item.icon as any} size={22} color={colors.primary} />
               </View>
@@ -74,6 +109,38 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      {/* Edit Profile Name Modal */}
+      <Modal visible={isEditModalOpen} transparent animationType="fade" onRequestClose={() => setIsEditModalOpen(false)}>
+        <View style={styles.modalBg}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Update Full Name</Text>
+            <Text style={styles.modalSub}>Enter your name as you want it to appear on orders and profile.</Text>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter your name"
+              placeholderTextColor={colors.textMuted}
+              value={editName}
+              onChangeText={setEditName}
+              autoFocus
+            />
+
+            <View style={styles.modalActionRow}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsEditModalOpen(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.saveBtn, isLoading && styles.disabledBtn]} disabled={isLoading} onPress={handleSaveEdit}>
+                {isLoading ? (
+                  <ActivityIndicator color={colors.textWhite} size="small" />
+                ) : (
+                  <Text style={styles.saveBtnText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -124,6 +191,11 @@ const styles = StyleSheet.create({
   userInfo: {
     gap: 4,
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   userName: {
     fontSize: typography.fontSize.lg,
@@ -195,5 +267,72 @@ const styles = StyleSheet.create({
     color: colors.textWhite,
     fontWeight: '800',
     fontSize: typography.fontSize.md,
+  },
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalBox: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    gap: spacing.md,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  modalSub: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textMuted,
+  },
+  modalInput: {
+    height: 48,
+    backgroundColor: colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    fontSize: typography.fontSize.sm,
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  cancelBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  cancelBtnText: {
+    color: colors.textMuted,
+    fontWeight: '700',
+    fontSize: typography.fontSize.sm,
+  },
+  saveBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: borderRadius.md,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    color: colors.textWhite,
+    fontWeight: '800',
+    fontSize: typography.fontSize.sm,
+  },
+  disabledBtn: {
+    opacity: 0.6,
   },
 });

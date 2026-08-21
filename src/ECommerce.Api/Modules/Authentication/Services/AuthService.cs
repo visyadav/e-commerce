@@ -288,6 +288,27 @@ public class AuthService : IAuthService
         return ApiResponse<AuthResponse>.SuccessResponse(response, "User details retrieved.");
     }
 
+    public async Task<ApiResponse<AuthResponse>> UpdateCustomerNameAsync(string userId, UpdateCustomerNameRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null || !user.IsActive)
+        {
+            return ApiResponse<AuthResponse>.FailureResponse("User not found or inactive.");
+        }
+
+        var cleanName = request.FullName.Trim();
+        if (string.IsNullOrWhiteSpace(cleanName))
+        {
+            return ApiResponse<AuthResponse>.FailureResponse("Please enter a valid name.");
+        }
+
+        user.FirstName = cleanName;
+        user.LastName = cleanName;
+        await _userManager.UpdateAsync(user);
+
+        return await GenerateAuthResponseAsync(user, cancellationToken);
+    }
+
     public async Task<ApiResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId);

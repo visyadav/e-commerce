@@ -15,5 +15,6 @@ public interface IAuthService
     Task<ApiResponse<AuthResponse>> LoginWithMobileOtpAsync(MobileOtpLoginRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<AuthResponse>> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<AuthResponse>> GetMeAsync(string userId, CancellationToken cancellationToken = default);
+    Task<ApiResponse<AuthResponse>> UpdateCustomerNameAsync(string userId, UpdateCustomerNameRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request, CancellationToken cancellationToken = default);
 }

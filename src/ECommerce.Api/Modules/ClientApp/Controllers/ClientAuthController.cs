@@ -116,6 +116,30 @@ public class ClientAuthController(IAuthService authService) : BaseApiController
     }
 
     /// <summary>
+    /// Update customer full name (POST method)
+    /// </summary>
+    [HttpPost("update-name")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UpdateName([FromBody] UpdateCustomerNameRequest request, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(ApiResponse.FailureResponse("User ID is missing from authorization claims."));
+        }
+
+        var response = await authService.UpdateCustomerNameAsync(userId, request, cancellationToken);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
+    /// <summary>
     /// Change customer password
     /// </summary>
     [HttpPost("change-password")]

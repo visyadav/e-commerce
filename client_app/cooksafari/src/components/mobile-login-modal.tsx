@@ -17,10 +17,10 @@ import { useAuthStore } from '@/store/auth-store';
 import { useCartStore } from '@/store/cart-store';
 
 export function MobileLoginModal() {
-  const { isLoginModalOpen, closeLoginModal, loginWithMobile, pendingCartAction } = useAuthStore();
+  const { isLoginModalOpen, closeLoginModal, loginWithMobile, updateName, pendingCartAction } = useAuthStore();
   const { addItem } = useCartStore();
 
-  const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [step, setStep] = useState<'PHONE' | 'OTP' | 'NAME'>('PHONE');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [fullName, setFullName] = useState('');
@@ -37,6 +37,19 @@ export function MobileLoginModal() {
     setStep('OTP');
   };
 
+  const finishLoginProcess = (nameToDisplay?: string) => {
+    if (pendingCartAction) {
+      addItem(pendingCartAction.product, pendingCartAction.quantity);
+      Alert.alert(
+        'Login Successful! 🎉',
+        `Welcome${nameToDisplay ? `, ${nameToDisplay}` : ''}! ${pendingCartAction.product.name} has been added to your cart.`
+      );
+    } else {
+      Alert.alert('Welcome! 🎉', `Logged in successfully${nameToDisplay ? `, ${nameToDisplay}` : ''}!`);
+    }
+    resetForm();
+  };
+
   const handleVerifyOtp = async () => {
     if (otp.length < 4) {
       Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP code (e.g. 1234).');
@@ -44,24 +57,42 @@ export function MobileLoginModal() {
     }
 
     setIsLoading(true);
-    const res = await loginWithMobile(phoneNumber, otp, fullName);
+    const res = await loginWithMobile(phoneNumber, otp);
     setIsLoading(false);
 
-    if (res.success) {
-      // Execute pending cart action automatically if user triggered login by adding to cart
-      if (pendingCartAction) {
-        addItem(pendingCartAction.product, pendingCartAction.quantity);
-        Alert.alert(
-          'Login Successful! 🎉',
-          `Welcome! ${pendingCartAction.product.name} has been added to your cart.`
-        );
+    if (res.success && res.user) {
+      const existingName = res.user.fullName;
+      const isDefaultName = !existingName || 
+        existingName.toLowerCase().startsWith('customer ') || 
+        existingName.toLowerCase().startsWith('user ') ||
+        existingName.trim() === '';
+
+      if (!isDefaultName) {
+        // Existing user already has a custom name set! Complete login immediately.
+        finishLoginProcess(existingName);
       } else {
-        Alert.alert('Welcome! 🎉', 'You are now logged in.');
+        // New user or default name -> Ask for optional name in Step 3!
+        setStep('NAME');
       }
-      resetForm();
     } else {
       Alert.alert('Login Failed', res.message);
     }
+  };
+
+  const handleSaveName = async () => {
+    const clean = fullName.trim();
+    if (clean.length > 0) {
+      setIsLoading(true);
+      await updateName(clean);
+      setIsLoading(false);
+      finishLoginProcess(clean);
+    } else {
+      finishLoginProcess();
+    }
+  };
+
+  const handleSkipName = () => {
+    finishLoginProcess();
   };
 
   const resetForm = () => {
@@ -92,15 +123,25 @@ export function MobileLoginModal() {
           {/* Header */}
           <View style={styles.headerBox}>
             <View style={styles.iconCircle}>
-              <Ionicons name="phone-portrait" size={28} color={colors.primary} />
+              <Ionicons
+                name={step === 'NAME' ? 'person' : 'phone-portrait'}
+                size={28}
+                color={colors.primary}
+              />
             </View>
             <Text style={styles.title}>
-              {step === 'PHONE' ? 'Login with Mobile Number' : 'Enter Verification Code'}
+              {step === 'PHONE'
+                ? 'Login with Mobile Number'
+                : step === 'OTP'
+                ? 'Enter Verification Code'
+                : "Welcome! What's your name?"}
             </Text>
             <Text style={styles.subtitle}>
               {step === 'PHONE'
                 ? 'Login to add products to your cart & get instant 10-minute delivery.'
-                : `We've sent a 4-digit code to +91 ${phoneNumber}`}
+                : step === 'OTP'
+                ? `We've sent a 4-digit code to +91 ${phoneNumber}`
+                : 'Adding your name is optional. You can also update it anytime in Profile.'}
             </Text>
           </View>
 
@@ -124,15 +165,6 @@ export function MobileLoginModal() {
                 />
               </View>
 
-              <Text style={styles.inputLabel}>Your Name (Optional)</Text>
-              <TextInput
-                style={styles.nameInput}
-                placeholder="Enter your name"
-                placeholderTextColor={colors.textMuted}
-                value={fullName}
-                onChangeText={setFullName}
-              />
-
               <TouchableOpacity
                 style={[styles.primaryBtn, phoneNumber.length < 10 && styles.disabledBtn]}
                 disabled={phoneNumber.length < 10}
@@ -142,7 +174,7 @@ export function MobileLoginModal() {
                 <Ionicons name="arrow-forward" size={16} color={colors.textWhite} />
               </TouchableOpacity>
             </View>
-          ) : (
+          ) : step === 'OTP' ? (
             <View style={styles.formGroup}>
               {/* Demo Hint Banner */}
               <View style={styles.demoBanner}>
@@ -181,6 +213,40 @@ export function MobileLoginModal() {
 
               <TouchableOpacity onPress={() => setStep('PHONE')} style={styles.changePhoneBtn}>
                 <Text style={styles.changePhoneText}>← Change Mobile Number</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* STEP 3: OPTIONAL NAME ENTRY FOR NEW USERS */
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Your Full Name (Optional)</Text>
+              <TextInput
+                style={styles.nameInput}
+                placeholder="Enter your name (e.g. Rahul Sharma)"
+                placeholderTextColor={colors.textMuted}
+                value={fullName}
+                onChangeText={setFullName}
+                autoFocus
+              />
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, isLoading && styles.disabledBtn]}
+                disabled={isLoading}
+                onPress={handleSaveName}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={colors.textWhite} />
+                ) : (
+                  <>
+                    <Text style={styles.primaryBtnText}>
+                      {fullName.trim().length > 0 ? 'Save Name & Continue' : 'Continue'}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={16} color={colors.textWhite} />
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={handleSkipName} style={styles.changePhoneBtn}>
+                <Text style={styles.changePhoneText}>Skip for Now →</Text>
               </TouchableOpacity>
             </View>
           )}
