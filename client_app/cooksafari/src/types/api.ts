@@ -11,9 +11,9 @@ export interface ServiceableAreaDto {
   city: string;
   state: string;
   pincode: string;
+  excludedPincodes?: string;
   latitude: number;
   longitude: number;
-  radiusInKm: number;
   isActive: boolean;
   cutoffTime?: string;
   createdAt: string;
@@ -22,12 +22,11 @@ export interface ServiceableAreaDto {
 export interface ServiceabilityResultDto {
   isServiceable: boolean;
   matchedHubName?: string;
-  distanceInKm?: number;
-  allowedRadiusKm?: number;
   message: string;
 }
 
 export interface CheckServiceabilityRequest {
+  city?: string;
   latitude?: number;
   longitude?: number;
   sectorOrAddress?: string;

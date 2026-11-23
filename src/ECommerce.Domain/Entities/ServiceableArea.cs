@@ -11,8 +11,8 @@ public class ServiceableArea : BaseEntity
     
     public double Latitude { get; set; } // Center Latitude e.g. 28.6280
     public double Longitude { get; set; } // Center Longitude e.g. 77.3649
-    public double RadiusInKm { get; set; } = 5.0; // Delivery Radius in KM
 
     public bool IsActive { get; set; } = true;
+    public string? ExcludedPincodes { get; set; } // Comma-separated list of excluded pincodes (e.g. "201301, 201305")
     public TimeSpan CutoffTime { get; set; } = new TimeSpan(23, 59, 0); // 11:59 PM cutoff for morning delivery
 }

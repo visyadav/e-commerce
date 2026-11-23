@@ -142,7 +142,7 @@ export default function HomeScreen() {
               {currentLocation
                 ? isServiceable
                   ? currentLocation.address
-                  : `⚠️ ${currentLocation.title} - Outside Delivery Zone (${currentLocation.distanceInKm} KM)`
+                  : `⚠️ ${currentLocation.title} - Outside Delivery Zone`
                 : 'Fetching delivery serviceability from API...'}
             </Text>
           </View>
@@ -163,7 +163,7 @@ export default function HomeScreen() {
         >
           <Ionicons name="alert-circle" size={15} color="#EF4444" />
           <Text style={styles.minimalWarningText} numberOfLines={1}>
-            Outside delivery area {currentLocation.distanceInKm > 0 ? `(${currentLocation.distanceInKm} KM)` : ''}
+            Outside delivery area
           </Text>
           <Text style={styles.minimalChangeLink}>Change Pin →</Text>
         </TouchableOpacity>

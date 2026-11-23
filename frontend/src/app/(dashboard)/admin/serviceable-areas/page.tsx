@@ -44,9 +44,9 @@ export default function ServiceableAreasPage() {
     city: "Noida",
     state: "Uttar Pradesh",
     pincode: "",
+    excludedPincodes: "",
     latitude: 28.6280,
     longitude: 77.3649,
-    radiusInKm: 5.0,
     isActive: true,
   });
 
@@ -73,9 +73,9 @@ export default function ServiceableAreasPage() {
       city: "Noida",
       state: "Uttar Pradesh",
       pincode: "",
+      excludedPincodes: "",
       latitude: 28.6280,
       longitude: 77.3649,
-      radiusInKm: 5.0,
       isActive: true,
     });
     setIsDialogOpen(true);
@@ -93,9 +93,9 @@ export default function ServiceableAreasPage() {
           city: data.city,
           state: data.state,
           pincode: data.pincode,
+          excludedPincodes: data.excludedPincodes || "",
           latitude: data.latitude,
           longitude: data.longitude,
-          radiusInKm: data.radiusInKm,
           isActive: data.isActive,
         });
         setIsDialogOpen(true);
@@ -115,9 +115,9 @@ export default function ServiceableAreasPage() {
           city: area.city,
           state: area.state,
           pincode: area.pincode,
+          excludedPincodes: area.excludedPincodes,
           latitude: area.latitude,
           longitude: area.longitude,
-          radiusInKm: area.radiusInKm,
           isActive: !area.isActive,
         },
         area.id
@@ -169,7 +169,7 @@ export default function ServiceableAreasPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Serviceable Areas</h2>
           <p className="text-muted-foreground">
-            Manage delivery hubs, geofence radius in kilometers, and active service zones.
+            Manage serviceable cities, delivery hubs, and excluded pincodes.
           </p>
         </div>
         <Button onClick={handleOpenAdd}>
@@ -197,9 +197,9 @@ export default function ServiceableAreasPage() {
             <tr>
               <th className="px-6 py-3 font-medium">Hub Name</th>
               <th className="px-6 py-3 font-medium">City / State</th>
-              <th className="px-6 py-3 font-medium">Pincode</th>
+              <th className="px-6 py-3 font-medium">Hub Pincode</th>
+              <th className="px-6 py-3 font-medium">Excluded Pincodes</th>
               <th className="px-6 py-3 font-medium">Coordinates (Lat, Lng)</th>
-              <th className="px-6 py-3 font-medium">Delivery Radius</th>
               <th className="px-6 py-3 font-medium">Active Status</th>
               <th className="px-6 py-3 font-medium text-right">Actions</th>
             </tr>
@@ -231,13 +231,17 @@ export default function ServiceableAreasPage() {
                     {item.city}, {item.state}
                   </td>
                   <td className="px-6 py-4 font-mono text-xs">{item.pincode}</td>
+                  <td className="px-6 py-4 font-mono text-xs">
+                    {item.excludedPincodes ? (
+                      <span className="text-destructive font-semibold bg-destructive/10 px-2 py-0.5 rounded">
+                        {item.excludedPincodes}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs font-sans">None</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 font-mono text-xs text-muted-foreground">
                     {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                      {item.radiusInKm} KM
-                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
@@ -291,8 +295,8 @@ export default function ServiceableAreasPage() {
             </DialogTitle>
             <DialogDescription>
               {editingArea
-                ? `Update location details or radius for ${editingArea.name}.`
-                : "Configure a new delivery hub center with latitude, longitude, and delivery radius in kilometers."}
+                ? `Update location details for ${editingArea.name}.`
+                : "Configure a new delivery hub center with city, pincode, and coordinates."}
             </DialogDescription>
           </DialogHeader>
 
@@ -317,7 +321,7 @@ export default function ServiceableAreasPage() {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">Pincode</label>
+                <label className="text-sm font-medium">Hub Pincode</label>
                 <Input
                   required
                   placeholder="201309"
@@ -327,7 +331,19 @@ export default function ServiceableAreasPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Excluded Pincodes (Optional)</label>
+              <Input
+                placeholder="e.g. 201301, 201305 (Comma separated)"
+                value={formData.excludedPincodes || ""}
+                onChange={(e) => setFormData({ ...formData, excludedPincodes: e.target.value })}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Pincodes listed here will be excluded from delivery inside {formData.city || "this city"}.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium">Latitude</label>
                 <Input
@@ -349,18 +365,6 @@ export default function ServiceableAreasPage() {
                   value={formData.longitude}
                   onChange={(e) =>
                     setFormData({ ...formData, longitude: parseFloat(e.target.value) || 0 })
-                  }
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">Radius (KM)</label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  required
-                  value={formData.radiusInKm}
-                  onChange={(e) =>
-                    setFormData({ ...formData, radiusInKm: parseFloat(e.target.value) || 0 })
                   }
                 />
               </div>

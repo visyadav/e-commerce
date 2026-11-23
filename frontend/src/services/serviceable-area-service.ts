@@ -6,9 +6,9 @@ export interface ServiceableArea {
   city: string;
   state: string;
   pincode: string;
+  excludedPincodes?: string;
   latitude: number;
   longitude: number;
-  radiusInKm: number;
   isActive: boolean;
   cutoffTime?: string;
   createdAt: string;
@@ -19,9 +19,9 @@ export interface CreateServiceableAreaPayload {
   city: string;
   state: string;
   pincode: string;
+  excludedPincodes?: string;
   latitude: number;
   longitude: number;
-  radiusInKm: number;
   isActive: boolean;
 }
 

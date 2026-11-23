@@ -29,6 +29,7 @@
     },
     "plugins": [
       "expo-router",
+      "react-native-maps",
       [
         "expo-splash-screen",
         {
@@ -38,7 +39,9 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,

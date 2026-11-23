@@ -53,8 +53,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 Pincode = "201309",
                 Latitude = 28.6280,
                 Longitude = 77.3649,
-                RadiusInKm = 5.0,
                 IsActive = true,
+                ExcludedPincodes = null,
                 CutoffTime = new TimeSpan(23, 59, 0),
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }

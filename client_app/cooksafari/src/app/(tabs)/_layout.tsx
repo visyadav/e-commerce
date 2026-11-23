@@ -8,8 +8,8 @@ import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { FloatingCartBar } from '@/components/floating-cart-bar';
 
-function LiquidGlassTabBar(props: BottomTabBarProps) {
-  const { state, descriptors, navigation } = props;
+function LiquidGlassTabBar(props: any) {
+  const { state, descriptors, navigation, emitter, navigateToTab } = props;
   const isIOS = Platform.OS === 'ios';
   const totalTabs = state.routes.length;
   const screenWidth = Dimensions.get('window').width;
@@ -58,14 +58,18 @@ function LiquidGlassTabBar(props: BottomTabBarProps) {
         const color = isFocused ? colors.tabBarActive : colors.tabBarInactive;
 
         const onPress = () => {
-          const event = navigation.emit({
+          const event = (emitter || navigation)?.emit?.({
             type: 'tabPress',
             target: route.key,
             canPreventDefault: true,
           });
 
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
+          if (!isFocused && !event?.defaultPrevented) {
+            if (navigateToTab) {
+              navigateToTab(route.key);
+            } else if (navigation?.navigate) {
+              navigation.navigate(route.name);
+            }
           }
         };
 

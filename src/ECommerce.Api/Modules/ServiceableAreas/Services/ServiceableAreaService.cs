@@ -77,48 +77,74 @@ public class ServiceableAreaService : IServiceableAreaService
             return new ServiceabilityResultDto
             {
                 IsServiceable = false,
-                Message = "No delivery hubs currently active."
+                Message = "No delivery cities currently active."
             };
         }
 
+        var requestedCity = request.City?.Trim();
         var requestedPincode = request.Pincode?.Trim();
 
-        // Pure Pincode Match: If requested pincode is in active service pincodes -> Available, otherwise Not Available
-        if (!string.IsNullOrWhiteSpace(requestedPincode))
+        // 1. COMPARE CITY NAME ONLY
+        bool IsCityMatch(string dbCity, string targetCity)
         {
-            var match = activeAreas.FirstOrDefault(a =>
-                string.Equals(a.Pincode.Trim(), requestedPincode, StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrWhiteSpace(dbCity) || string.IsNullOrWhiteSpace(targetCity))
+                return false;
 
-            if (match != null)
-            {
-                return new ServiceabilityResultDto
-                {
-                    IsServiceable = true,
-                    MatchedHubName = match.Name,
-                    AllowedRadiusKm = 0,
-                    DistanceInKm = 0,
-                    Message = $"Delivery available in {match.City}! Pincode {match.Pincode} is serviceable ({match.Name})."
-                };
-            }
+            var db = dbCity.Trim().ToLowerInvariant();
+            var target = targetCity.Trim().ToLowerInvariant();
 
-            var activePincodesList = string.Join(", ", activeAreas.Select(a => a.Pincode.Trim()).Distinct());
+            if (db == target || db.Contains(target) || target.Contains(db))
+                return true;
+
+            // Region aliases e.g. Noida / Greater Noida / Gautam Buddh Nagar
+            if ((db.Contains("noida") || db.Contains("gautam")) &&
+                (target.Contains("noida") || target.Contains("gautam")))
+                return true;
+
+            return false;
+        }
+
+        var cityHubs = activeAreas.Where(a => IsCityMatch(a.City, requestedCity ?? "")).ToList();
+
+        // If City Name does NOT match, return NOT SERVICEABLE immediately (do NOT try to match pincodes)
+        if (!cityHubs.Any())
+        {
+            var availableCities = string.Join(", ", activeAreas.Select(a => a.City.Trim()).Distinct(StringComparer.OrdinalIgnoreCase));
             return new ServiceabilityResultDto
             {
                 IsServiceable = false,
                 MatchedHubName = null,
-                AllowedRadiusKm = 0,
-                DistanceInKm = 0,
-                Message = $"CookSafari does not deliver to pincode {requestedPincode} yet. Active delivery pincodes: {activePincodesList}."
+                Message = $"Delivery is not available in '{requestedCity ?? "your location"}'. Supported cities: {availableCities}."
             };
         }
 
+        // 2. CITY NAME MATCHED! Now validate EXCLUDE PINCODE ONLY.
+        if (!string.IsNullOrWhiteSpace(requestedPincode))
+        {
+            var excludedPincodes = cityHubs
+                .Where(h => !string.IsNullOrWhiteSpace(h.ExcludedPincodes))
+                .SelectMany(h => h.ExcludedPincodes!.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                .Select(p => p.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (excludedPincodes.Contains(requestedPincode))
+            {
+                return new ServiceabilityResultDto
+                {
+                    IsServiceable = false,
+                    MatchedHubName = cityHubs.First().Name,
+                    Message = $"Pincode {requestedPincode} in {cityHubs.First().City} is excluded from delivery service. Please change your location."
+                };
+            }
+        }
+
+        // City matched and pincode is NOT in exclude list -> SERVICEABLE!
+        var mainHub = cityHubs.First();
         return new ServiceabilityResultDto
         {
-            IsServiceable = false,
-            MatchedHubName = null,
-            AllowedRadiusKm = 0,
-            DistanceInKm = 0,
-            Message = "Please enter or select a valid 6-digit pincode to check delivery availability."
+            IsServiceable = true,
+            MatchedHubName = mainHub.Name,
+            Message = $"Delivery available in {mainHub.City}!"
         };
     }
 }

@@ -26,9 +26,6 @@ public class CreateServiceableAreaRequestValidator : AbstractValidator<CreateSer
 
         RuleFor(x => x.Longitude)
             .InclusiveBetween(-180.0, 180.0).WithMessage("Longitude must be between -180 and 180 degrees.");
-
-        RuleFor(x => x.RadiusInKm)
-            .GreaterThan(0).WithMessage("Delivery radius must be greater than 0 KM.");
     }
 }
 
@@ -55,8 +52,5 @@ public class UpdateServiceableAreaRequestValidator : AbstractValidator<UpdateSer
 
         RuleFor(x => x.Longitude)
             .InclusiveBetween(-180.0, 180.0).WithMessage("Longitude must be between -180 and 180 degrees.");
-
-        RuleFor(x => x.RadiusInKm)
-            .GreaterThan(0).WithMessage("Delivery radius must be greater than 0 KM.");
     }
 }

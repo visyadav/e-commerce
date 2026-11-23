@@ -56,6 +56,10 @@ public class DataSeeder(
                             [DeletedAt] datetime2 NULL
                         );
                     END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[ServiceableAreas]') AND name = 'ExcludedPincodes')
+                    BEGIN
+                        ALTER TABLE [ServiceableAreas] ADD [ExcludedPincodes] nvarchar(max) NULL;
+                    END
                 ");
             }
             catch (Exception ex)
@@ -422,7 +426,6 @@ public class DataSeeder(
                 Pincode = "201309",
                 Latitude = 28.6280,
                 Longitude = 77.3649,
-                RadiusInKm = 5.0,
                 IsActive = true,
                 CutoffTime = new TimeSpan(23, 59, 0),
                 CreatedAt = DateTime.UtcNow

@@ -12,7 +12,6 @@ export interface LocationItem {
   latitude: number;
   longitude: number;
   isServiceable: boolean;
-  distanceInKm: number;
   source?: 'gps' | 'hub' | 'manual';
   message?: string;
 }
@@ -60,7 +59,6 @@ export const useLocationStore = create<LocationState>((set, get) => ({
       const updatedLoc: LocationItem = {
         ...location,
         isServiceable: apiData ? apiData.isServiceable : false,
-        distanceInKm: apiData && apiData.distanceInKm !== undefined ? apiData.distanceInKm : location.distanceInKm,
         message: apiData ? apiData.message : `[Debug API Warning] ${response.message || 'Service status check failed'}`,
       };
 
@@ -100,18 +98,22 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 
   fetchSavedUserAddresses: async () => {
     try {
-      const response = await addressService.getAddresses();
-      if (response.success && response.data) {
-        const addresses = response.data;
+      const res = await addressService.getAddresses();
+      if (res.success && res.data) {
+        const addresses = res.data;
+
+        // Check serviceability for each address
         const mappedItems: LocationItem[] = await Promise.all(
           addresses.map(async (a) => {
-            const checkRes = await locationService.checkServiceability({
+            const response = await locationService.checkServiceability({
+              city: a.city,
               latitude: a.latitude || HUB_LAT,
               longitude: a.longitude || HUB_LNG,
               sectorOrAddress: a.street,
               pincode: a.zipCode,
             });
-            const apiData = checkRes.success ? checkRes.data : null;
+
+            const apiData = response.success ? response.data : null;
 
             return {
               id: `saved-${a.id}`,
@@ -121,7 +123,6 @@ export const useLocationStore = create<LocationState>((set, get) => ({
               latitude: a.latitude || HUB_LAT,
               longitude: a.longitude || HUB_LNG,
               isServiceable: apiData ? apiData.isServiceable : false,
-              distanceInKm: apiData?.distanceInKm ?? 0.0,
               message: apiData?.message || (apiData?.isServiceable ? 'Serviceable' : `Delivery not available at pincode ${a.zipCode}`),
               source: 'manual' as const,
             };
@@ -163,6 +164,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
         let title = 'Current GPS Location';
         let pincode = '';
 
+        let city = '';
         try {
           const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
           if (geocode && geocode.length > 0) {
@@ -171,6 +173,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
             formattedAddress = parts.join(', ');
             title = g.subregion || g.city || g.name || 'Current Location';
             pincode = g.postalCode || '';
+            city = g.city || g.subregion || g.district || '';
           }
         } catch {
           // Geocoding fallback
@@ -178,6 +181,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 
         // 4. Call Web API to verify serviceability
         const response = await locationService.checkServiceability({
+          city,
           latitude: lat,
           longitude: lng,
           sectorOrAddress: title,
@@ -185,12 +189,10 @@ export const useLocationStore = create<LocationState>((set, get) => ({
         });
 
         let isServiceable = false;
-        let distanceInKm = 0;
         let apiMessage: string | undefined;
 
         if (response.success && response.data) {
           isServiceable = response.data.isServiceable;
-          distanceInKm = response.data.distanceInKm ?? 0;
           apiMessage = response.data.message;
         }
 
@@ -202,7 +204,6 @@ export const useLocationStore = create<LocationState>((set, get) => ({
           latitude: lat,
           longitude: lng,
           isServiceable,
-          distanceInKm,
           message: apiMessage,
           source: 'gps',
         };
@@ -238,12 +239,10 @@ export const useLocationStore = create<LocationState>((set, get) => ({
     });
 
     let isServiceable = false;
-    let distanceInKm = 0;
     let apiMessage: string | undefined;
 
     if (response.success && response.data) {
       isServiceable = response.data.isServiceable;
-      distanceInKm = response.data.distanceInKm ?? 0;
       apiMessage = response.data.message;
     }
 
@@ -255,7 +254,6 @@ export const useLocationStore = create<LocationState>((set, get) => ({
       latitude: lat,
       longitude: lng,
       isServiceable,
-      distanceInKm,
       message: apiMessage,
       source: 'manual',
     };

@@ -11,8 +11,10 @@ import {
   Dimensions,
   Platform,
   KeyboardAvoidingView,
+  Animated,
+  Easing,
 } from 'react-native';
-import MapView, { Region, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, borderRadius, spacing } from '@/theme';
 import * as ExpoLocation from 'expo-location';
@@ -42,11 +44,11 @@ export function MapPinPickerModal() {
     longitudeDelta: 0.015,
   });
 
-  // Serviceability State
+  // City & Serviceability State
+  const [city, setCity] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const [isServiceable, setIsServiceable] = useState(true);
   const [serviceMessage, setServiceMessage] = useState('Delivery available at this location!');
-  const [distanceKm, setDistanceKm] = useState(0);
 
   // Address Form State
   const [houseNo, setHouseNo] = useState('');
@@ -57,9 +59,22 @@ export function MapPinPickerModal() {
   const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // When modal opens, animate map to current location
+  // Slide Up / Slide Down Animation State
+  const slideAnim = useRef(new Animated.Value(400)).current;
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+
+  // When modal opens, animate map and slide up panel
   useEffect(() => {
     if (isPickerModalOpen) {
+      setIsPanelCollapsed(false);
+      slideAnim.setValue(400);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 9,
+      }).start();
+
       const initialLat = currentLocation?.latitude || HUB_LAT;
       const initialLng = currentLocation?.longitude || HUB_LNG;
       const initialRegion = {
@@ -75,18 +90,30 @@ export function MapPinPickerModal() {
     }
   }, [isPickerModalOpen]);
 
-  const checkPinpointServiceability = async (lat: number, lng: number, pinToUse?: string) => {
+  const togglePanelSlide = () => {
+    const nextCollapsed = !isPanelCollapsed;
+    setIsPanelCollapsed(nextCollapsed);
+    Animated.timing(slideAnim, {
+      toValue: nextCollapsed ? 280 : 0,
+      duration: 280,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const checkPinpointServiceability = async (
+    lat: number,
+    lng: number,
+    pinToUse?: string,
+    cityToUse?: string
+  ) => {
     try {
       setIsChecking(true);
       const targetPincode = (pinToUse !== undefined ? pinToUse : pincode).trim();
-
-      if (!targetPincode) {
-        setIsServiceable(false);
-        setServiceMessage('Enter or select a pincode to check delivery serviceability.');
-        return;
-      }
+      const targetCity = (cityToUse !== undefined ? cityToUse : city).trim();
 
       const res = await locationService.checkServiceability({
+        city: targetCity,
         pincode: targetPincode,
         latitude: lat,
         longitude: lng,
@@ -95,17 +122,19 @@ export function MapPinPickerModal() {
 
       if (res.success && res.data) {
         setIsServiceable(res.data.isServiceable);
-        setDistanceKm(res.data.distanceInKm ?? 0);
         setServiceMessage(res.data.message);
       } else {
         setIsServiceable(false);
-        const errMsg = res.errors && res.errors.length > 0 ? res.errors.join(', ') : res.message || 'Failed to verify service status';
-        setServiceMessage(`[Debug Error] API Status Failed: ${errMsg}`);
+        const errMsg =
+          res.errors && res.errors.length > 0
+            ? res.errors.join(', ')
+            : res.message || 'Failed to verify service status';
+        setServiceMessage(`Delivery Not Available: ${errMsg}`);
       }
     } catch (err: any) {
       setIsServiceable(false);
       const detail = err?.message || String(err);
-      setServiceMessage(`[Debug Network Error] Cannot connect to Web API at http://192.168.1.3:5185 (${detail})`);
+      setServiceMessage(`Cannot connect to Web API (${detail})`);
     } finally {
       setIsChecking(false);
     }
@@ -116,6 +145,7 @@ export function MapPinPickerModal() {
     setRegion(newRegion);
     setIsChecking(true);
     let detectedPincode = '';
+    let detectedCity = '';
 
     try {
       const geocode = await ExpoLocation.reverseGeocodeAsync({
@@ -123,17 +153,22 @@ export function MapPinPickerModal() {
         longitude: newRegion.longitude,
       });
 
-      if (geocode && geocode.length > 0 && geocode[0].postalCode) {
-        detectedPincode = geocode[0].postalCode.trim();
+      if (geocode && geocode.length > 0) {
+        const first = geocode[0];
+        detectedPincode = first.postalCode ? first.postalCode.trim() : '';
+        detectedCity = first.city || first.subregion || first.district || first.region || '';
         setPincode(detectedPincode);
+        setCity(detectedCity);
       } else {
         setPincode('');
+        setCity('');
       }
     } catch {
       setPincode('');
+      setCity('');
     }
 
-    checkPinpointServiceability(newRegion.latitude, newRegion.longitude, detectedPincode);
+    checkPinpointServiceability(newRegion.latitude, newRegion.longitude, detectedPincode, detectedCity);
   };
 
   // Select a Saved Address from the chip list
@@ -199,7 +234,6 @@ export function MapPinPickerModal() {
         latitude: region.latitude,
         longitude: region.longitude,
         isServiceable,
-        distanceInKm: distanceKm,
         source: 'manual',
         message: serviceMessage,
       };
@@ -224,8 +258,8 @@ export function MapPinPickerModal() {
         {/* 1. FULL SCREEN INTERACTIVE MAP VIEW */}
         <MapView
           ref={mapRef}
-          style={StyleSheet.absoluteFillObject}
-          provider={PROVIDER_DEFAULT}
+          style={styles.mapViewStyle}
+          mapType="standard"
           initialRegion={region}
           onRegionChangeComplete={handleRegionChangeComplete}
           showsUserLocation
@@ -270,8 +304,30 @@ export function MapPinPickerModal() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoidingView}
         >
-          <View style={styles.bottomSheetCard}>
-            <View style={styles.dragHandleBar} />
+          <Animated.View
+            style={[
+              styles.bottomSheetCard,
+              { transform: [{ translateY: slideAnim }] },
+            ]}
+          >
+            {/* Interactive Slide Up / Slide Down Handle */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={togglePanelSlide}
+              style={styles.dragHandleTouchArea}
+            >
+              <View style={styles.dragHandleBar} />
+              <View style={styles.dragHintRow}>
+                <Ionicons
+                  name={isPanelCollapsed ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color={colors.textMuted}
+                />
+                <Text style={styles.dragHintText}>
+                  {isPanelCollapsed ? 'Tap / Drag to Slide Up Form ▲' : 'Tap / Drag to Slide Down & View Map ▼'}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
             {/* Serviceability Alert Status */}
             {isChecking ? (
@@ -448,13 +504,18 @@ export function MapPinPickerModal() {
                 </View>
               ) : (
                 <View style={styles.unserviceableWarningBox}>
+                  <Ionicons name="location-outline" size={32} color={colors.danger} style={{ alignSelf: 'center', marginBottom: 6 }} />
                   <Text style={styles.unserviceableText}>
-                    Please drag the map to pinpoint a location inside our active delivery zone (Sector 62, Noida).
+                    {serviceMessage || 'Delivery is currently not available at this selected location. Please change your location to a supported city and pincode.'}
                   </Text>
+                  <TouchableOpacity style={styles.changeLocBtn} onPress={handleSnapToUserGps}>
+                    <Ionicons name="locate" size={16} color={colors.textWhite} />
+                    <Text style={styles.changeLocBtnText}>Change Location / Recenter Map</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </ScrollView>
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -465,6 +526,13 @@ const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
     backgroundColor: '#0F172A',
+  },
+  mapViewStyle: {
+    width: width,
+    height: height,
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   centerPinWrapper: {
     position: 'absolute',
@@ -575,13 +643,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
   },
+  dragHandleTouchArea: {
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
   dragHandleBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.cardBorder,
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#CBD5E1',
     alignSelf: 'center',
-    marginVertical: spacing.xs,
+    marginBottom: 4,
+  },
+  dragHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  dragHintText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 0.3,
   },
   statusChecking: {
     flexDirection: 'row',
@@ -754,6 +840,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.md,
     marginTop: spacing.md,
+    alignItems: 'center',
   },
   unserviceableText: {
     color: colors.danger,
@@ -761,6 +848,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
     fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  changeLocBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.danger,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 4,
+    borderRadius: borderRadius.full,
+    gap: 6,
+  },
+  changeLocBtnText: {
+    color: colors.textWhite,
+    fontWeight: '800',
+    fontSize: typography.fontSize.xs,
   },
 });
 
